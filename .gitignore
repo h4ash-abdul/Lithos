@@ -1,0 +1,39 @@
+﻿# Dependencies
+node_modules/
+backend/venv/
+venv/
+env/
+.venv/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Python cache & tests
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & test uploads
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Environment variables & editor
+.env
+.env.*
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Scratch helper scripts
+write_file_b64.py
