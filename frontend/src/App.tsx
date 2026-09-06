@@ -81,15 +81,15 @@ export function App() {
         {activeTab === "overview" ? (
           <motion.div
             key="hero-experience"
-            initial={{ opacity: 0, scale: 1.04, filter: "blur(6px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            initial={{ opacity: 0, scale: 1.02 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{
               opacity: 0,
-              scale: 1.05,
-              filter: "blur(12px)",
-              transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+              scale: 0.98,
+              transition: { duration: 0.28, ease: [0.25, 1, 0.5, 1] }
             }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.32, ease: [0.25, 1, 0.5, 1] }}
+            style={{ willChange: "opacity, transform" }}
             className="min-h-screen w-full"
           >
             <LithosHero
@@ -100,16 +100,15 @@ export function App() {
         ) : (
           <motion.div
             key="portal-experience"
-            initial={{ opacity: 0, scale: 0.985, y: 18, filter: "blur(10px)" }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{
               opacity: 0,
-              scale: 0.98,
-              y: 14,
-              filter: "blur(8px)",
-              transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] }
+              y: -8,
+              transition: { duration: 0.24, ease: [0.25, 1, 0.5, 1] }
             }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+            style={{ willChange: "opacity, transform" }}
             className="portal-workspace min-h-screen bg-[#050806] text-[#e8e6df] flex flex-col antialiased relative overflow-x-hidden"
           >
             {/* Botanical Wildflower & Moss Background Layer - Vivid and Prominently Visible */}
@@ -219,10 +218,11 @@ export function App() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: [0.25, 1, 0.5, 1] }}
+                  style={{ willChange: "opacity, transform" }}
                 >
                   {activeTab === "intake" && (
                     <FarmerIntakeFlow
