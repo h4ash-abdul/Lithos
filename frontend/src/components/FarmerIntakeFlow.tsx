@@ -28,18 +28,18 @@ const SYMPTOM_OPTIONS = [
 ];
 
 const SPECIES_OPTIONS = [
-  { id: "CATTLE", name: "Cattle", sub: "Cow / Bull", code: "BOV" },
-  { id: "BUFFALO", name: "Buffalo", sub: "Murrah / Surti", code: "BUF" },
-  { id: "GOAT", name: "Goat", sub: "Caprine", code: "CAP" },
-  { id: "SHEEP", name: "Sheep", sub: "Ovine", code: "OVI" }
+  { id: "CATTLE", nameEn: "Cattle", nameHi: "गाय / बैल (गोवंश)", nameTa: "மாடு / காளை", subEn: "Cow / Bull", subHi: "गाय या बैल", subTa: "நாட்டு மாடு", code: "BOV" },
+  { id: "BUFFALO", nameEn: "Buffalo", nameHi: "भैंस (महिष)", nameTa: "எருமை", subEn: "Murrah / Surti", subHi: "मुर्रा / सुरती", subTa: "முறா / சூரத்தி", code: "BUF" },
+  { id: "GOAT", nameEn: "Goat", nameHi: "बकरी (अजा)", nameTa: "ஆடு", subEn: "Caprine", subHi: "देशी / बरबरी", subTa: "வெள்ளாடு", code: "CAP" },
+  { id: "SHEEP", nameEn: "Sheep", nameHi: "भेड़ (मेष)", nameTa: "செம்மறியாடு", subEn: "Ovine", subHi: "ऊन / मांस नस्ल", subTa: "செம்மறி", code: "OVI" }
 ];
 
 const BODY_PARTS = [
-  { id: "SKIN", label: "Skin / Humps" },
-  { id: "MOUTH", label: "Mouth / Lips" },
-  { id: "HOOF", label: "Hooves / Feet" },
-  { id: "UDDER", label: "Udder / Teats" },
-  { id: "GENERAL", label: "General Body" }
+  { id: "SKIN", labelEn: "Skin / Humps", labelHi: "त्वचा / कूबड़", labelTa: "தோல் / திமில்" },
+  { id: "MOUTH", labelEn: "Mouth / Lips", labelHi: "मुंह / होंठ / जीभ", labelTa: "வாய் / உதடு" },
+  { id: "HOOF", labelEn: "Hooves / Feet", labelHi: "खुर / पैर", labelTa: "குளம்பு / கால்" },
+  { id: "UDDER", labelEn: "Udder / Teats", labelHi: "थन / अयन", labelTa: "மடி / காம்பு" },
+  { id: "GENERAL", labelEn: "General Body", labelHi: "पूरा शरीर", labelTa: "முழு உடல்" }
 ];
 
 export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline, onCaseCreated }) => {
@@ -75,10 +75,26 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   const [analysisPhase, setAnalysisPhase] = useState(0);
 
   const phaseMessages = [
-    lang === "hi" ? "त्वचा और घाव के फोटो का विश्लेषण जारी है..." : "ANALYZING LESION TEXTURE & ERYTHEMA INDEX...",
-    lang === "hi" ? "लक्षणों को पशु चिकित्सा ज्ञानकोष से मिलाया जा रहा है..." : "CROSS-REFERENCING SYMPTOM MATRIX...",
-    lang === "hi" ? "गंभीरता और एनडीएलएम संगरोध नियमों की जांच हो रही है..." : "CALIBRATING EPIDEMIC URGENCY PROTOCOLS...",
-    lang === "hi" ? "प्रथम उपचार रिपोर्ट तैयार की जा रही है..." : "GENERATING SUSPECTED DIAGNOSIS & INTERIM CARE..."
+    lang === "hi" 
+      ? "त्वचा और घाव के फोटो का विश्लेषण जारी है..." 
+      : lang === "ta"
+      ? "தோல் மற்றும் புண் பகுப்பாய்வு செய்யப்படுகிறது..."
+      : "ANALYZING LESION TEXTURE & ERYTHEMA INDEX...",
+    lang === "hi" 
+      ? "लक्षणों को पशु चिकित्सा ज्ञानकोष से मिलाया जा रहा है..." 
+      : lang === "ta"
+      ? "அறிகுறிகள் மருத்துவ தகவல்களுடன் ஒப்பிடப்படுகின்றன..."
+      : "CROSS-REFERENCING SYMPTOM MATRIX...",
+    lang === "hi" 
+      ? "गंभीरता और एनडीएलएम संगरोध नियमों की जांच हो रही है..." 
+      : lang === "ta"
+      ? "தீவிர நிலை மற்றும் பாதுகாப்பு வழிகாட்டுதல்கள் சரிபார்க்கப்படுகின்றன..."
+      : "CALIBRATING EPIDEMIC URGENCY PROTOCOLS...",
+    lang === "hi" 
+      ? "प्रथम उपचार रिपोर्ट तैयार की जा रही है..." 
+      : lang === "ta"
+      ? "இடைக்கால முதலுதவி அறிக்கை தயாரிக்கப்படுகிறது..."
+      : "GENERATING SUSPECTED DIAGNOSIS & INTERIM CARE..."
   ];
 
   useEffect(() => {
@@ -296,11 +312,11 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   };
 
   const stepsList = [
-    { num: 1, title: "ANIMAL ID" },
-    { num: 2, title: "SYMPTOMS" },
-    { num: 3, title: "LESION PHOTO" },
-    { num: 4, title: "GEOTAG & VOICE" },
-    { num: 5, title: "REVIEW" }
+    { num: 1, title: t.tabIntake ? t.tabIntake.split(" ")[0].toUpperCase() : "ANIMAL ID" },
+    { num: 2, title: t.stepSymptoms ? t.stepSymptoms.split("//")[1]?.trim() || "SYMPTOMS" : "SYMPTOMS" },
+    { num: 3, title: t.stepPhoto ? t.stepPhoto.split("//")[1]?.trim() || "LESION PHOTO" : "LESION PHOTO" },
+    { num: 4, title: t.stepGps ? t.stepGps.split("//")[1]?.trim() || "GEOTAG & VOICE" : "GEOTAG & VOICE" },
+    { num: 5, title: t.stepReview ? t.stepReview.split("//")[1]?.trim() || "REVIEW" : "REVIEW" }
   ];
   return (
     <div className="w-full space-y-6 pb-16">
@@ -308,7 +324,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
       {isOffline && (
         <div className="bg-[#180f08]/90 border border-[#c17a35]/60 text-[#c17a35] p-3.5 rounded-[2px] text-xs font-mono flex items-center gap-3 backdrop-blur-sm">
           <span className="w-2 h-2 rounded-full bg-[#c17a35] shrink-0 animate-pulse" />
-          <span>OFFLINE LOCAL MODE &middot; Cases queued locally in encrypted browser outbox</span>
+          <span>{t.offlineModeAlert || "OFFLINE LOCAL MODE · Cases queued locally in encrypted browser outbox"}</span>
         </div>
       )}
 
@@ -359,23 +375,23 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             >
               <div className="border-b border-[#1b2b20] pb-4">
                 <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  STEP 01 // ANIMAL REGISTRATION
+                  {t.stepAnimalReg || "STEP 01 // ANIMAL REGISTRATION"}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  Identification &amp; Species Classification
+                  {t.stepAnimalRegTitle || "Identification & Species Classification"}
                 </h3>
               </div>
 
               {/* Tag Input & Verification */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  NDLM 12-Digit Ear Tag Identifier
+                  {t.tagIdLabel || "NDLM 12-Digit Ear Tag Identifier"}
                 </label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
                     maxLength={12}
-                    placeholder="ENTER 12-DIGIT TAG (E.G. 100234567890)"
+                    placeholder={t.tagPlaceholder || "ENTER 12-DIGIT TAG (E.G. 100234567890)"}
                     value={tagId}
                     onChange={(e) => setTagId(e.target.value.replace(/\D/g, ""))}
                     className="flex-1 bg-[#050a07] border border-[#1b2b20] rounded-[2px] px-4 py-3 text-sm sm:text-base font-mono text-[#e8e6df] placeholder-[#4e6054] focus:outline-none focus:border-[#5a8f66] transition"
@@ -387,7 +403,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                     className="bg-[#0d1c13] hover:bg-[#13281c] disabled:opacity-30 border border-[#2d523a] text-[#84ba90] text-xs sm:text-sm font-mono font-bold uppercase px-6 py-3 rounded-[2px] transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm"
                   >
                     {isTagVerifying ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
-                    <span>VERIFY TAG</span>
+                    <span>{t.verifyTag ? t.verifyTag.toUpperCase() : "VERIFY TAG"}</span>
                   </button>
                 </div>
 
@@ -395,7 +411,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                   <div className="bg-[#060e09] border border-[#2d523a] text-[#e8e6df] p-4 rounded-[2px] text-xs sm:text-sm font-mono space-y-1.5 mt-2">
                     <div className="flex items-center gap-2 font-bold text-[#84ba90] text-xs uppercase">
                       <ShieldCheck size={15} />
-                      <span>NDLM Federated Registry Verified</span>
+                      <span>{t.tagVerifiedRegistry || "NDLM Federated Registry Verified"}</span>
                     </div>
                     <p className="text-xs text-[#8a9990]">Owner: <strong className="text-[#e8e6df]">{tagVerifiedData.owner_name}</strong> ({tagVerifiedData.village}, {tagVerifiedData.district})</p>
                     <p className="text-xs text-[#8a9990]">Profile: <strong className="text-[#e8e6df]">{tagVerifiedData.species}</strong> &middot; Breed: <strong className="text-[#e8e6df]">{tagVerifiedData.breed}</strong></p>
@@ -406,41 +422,46 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               {/* Species Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  Species Code
+                  {t.speciesLabel || "Species Code"}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                  {SPECIES_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSpecies(opt.id)}
-                      className={`p-4 sm:p-5 rounded-[2px] border text-left transition flex flex-col justify-between h-24 sm:h-28 cursor-pointer ${
-                        species === opt.id
-                          ? "bg-[#0e1c14] border border-[#5a8f66] shadow-[0_0_10px_rgba(90,143,102,0.2)]"
-                          : "bg-[#050a07] border border-[#1b2b20] hover:border-[#2d4535] text-[#8a9990]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-[2px] ${
-                          species === opt.id ? "bg-[#5a8f66] text-white" : "bg-[#0d1611] text-[#8a9990]"
-                        }`}>
-                          {opt.code}
-                        </span>
-                        {species === opt.id && <Check size={15} className="text-[#84ba90]" />}
-                      </div>
-                      <div>
-                        <span className="font-mono font-bold text-sm sm:text-base text-[#e8e6df] block">{opt.name}</span>
-                        <span className="text-xs font-mono text-[#8a9990] block">{opt.sub}</span>
-                      </div>
-                    </button>
-                  ))}
+                  {SPECIES_OPTIONS.map((opt) => {
+                    const speciesName = lang === "hi" ? opt.nameHi : lang === "ta" ? opt.nameTa : opt.nameEn;
+                    const speciesSub = lang === "hi" ? opt.subHi : lang === "ta" ? opt.subTa : opt.subEn;
+
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSpecies(opt.id)}
+                        className={`p-4 sm:p-5 rounded-[2px] border text-left transition flex flex-col justify-between h-24 sm:h-28 cursor-pointer ${
+                          species === opt.id
+                            ? "bg-[#0e1c14] border border-[#5a8f66] shadow-[0_0_10px_rgba(90,143,102,0.2)]"
+                            : "bg-[#050a07] border border-[#1b2b20] hover:border-[#2d4535] text-[#8a9990]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-[2px] ${
+                            species === opt.id ? "bg-[#5a8f66] text-white" : "bg-[#0d1611] text-[#8a9990]"
+                          }`}>
+                            {opt.code}
+                          </span>
+                          {species === opt.id && <Check size={15} className="text-[#84ba90]" />}
+                        </div>
+                        <div>
+                          <span className="font-mono font-bold text-sm sm:text-base text-[#e8e6df] block">{speciesName}</span>
+                          <span className="text-xs font-mono text-[#8a9990] block">{speciesSub}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Breed Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  Registered Breed Type
+                  {t.breedLabel || "Registered Breed Type"}
                 </label>
                 <select
                   value={breed}
@@ -469,10 +490,10 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             >
               <div className="border-b border-[#1b2b20] pb-4">
                 <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  STEP 02 // CLINICAL SYMPTOMS
+                  {t.stepSymptoms || "STEP 02 // CLINICAL SYMPTOMS"}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  Select Observed Pathological Indicators
+                  {t.stepSymptomsTitle || "Select Observed Pathological Indicators"}
                 </h3>
               </div>
 
@@ -513,26 +534,30 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                           onClick={(e) => e.stopPropagation()} 
                           className="pt-2.5 border-t border-[#1b2b20] flex items-center justify-between text-xs"
                         >
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8a9990]">SEVERITY:</span>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#8a9990]">{t.severityLabel || "SEVERITY:"}</span>
                           <div className="flex gap-1.5">
-                            {(['MILD', 'MODERATE', 'SEVERE'] as const).map((sev) => (
-                              <button
-                                key={sev}
-                                type="button"
-                                onClick={() => updateSymptomSeverity(opt.code, sev)}
-                                className={`px-2.5 py-1 rounded-[2px] text-[10px] font-mono font-bold uppercase transition ${
-                                  selectedSymptoms[opt.code]?.severity === sev
-                                    ? sev === 'SEVERE'
-                                      ? 'bg-[#b5555f] text-white'
-                                      : sev === 'MODERATE'
-                                      ? 'bg-[#c17a35] text-white'
-                                      : 'bg-[#132319] text-[#84ba90] border border-[#2d523a]'
-                                    : 'bg-[#070e0a] text-[#8a9990] border border-[#1b2b20] hover:border-[#2d4535]'
-                                }`}
-                              >
-                                {sev}
-                              </button>
-                            ))}
+                            {(['MILD', 'MODERATE', 'SEVERE'] as const).map((sev) => {
+                              const sevLabel = sev === 'MILD' ? (t.severityMild || "MILD") : sev === 'MODERATE' ? (t.severityModerate || "MODERATE") : (t.severitySevere || "SEVERE");
+
+                              return (
+                                <button
+                                  key={sev}
+                                  type="button"
+                                  onClick={() => updateSymptomSeverity(opt.code, sev)}
+                                  className={`px-2.5 py-1 rounded-[2px] text-[10px] font-mono font-bold uppercase transition ${
+                                    selectedSymptoms[opt.code]?.severity === sev
+                                      ? sev === 'SEVERE'
+                                        ? 'bg-[#b5555f] text-white'
+                                        : sev === 'MODERATE'
+                                        ? 'bg-[#c17a35] text-white'
+                                        : 'bg-[#132319] text-[#84ba90] border border-[#2d523a]'
+                                      : 'bg-[#070e0a] text-[#8a9990] border border-[#1b2b20] hover:border-[#2d4535]'
+                                  }`}
+                                >
+                                  {sevLabel}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -555,17 +580,17 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             >
               <div className="border-b border-[#1b2b20] pb-4">
                 <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  STEP 03 // OPTICAL TELEMETRY
+                  {t.stepPhoto || "STEP 03 // OPTICAL TELEMETRY"}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  Dermatological Lesion Capture
+                  {t.stepPhotoTitle || "Dermatological Lesion Capture"}
                 </h3>
               </div>
 
               {/* Photo Upload Zone */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  Lesion / Clinical Image Payload
+                  {t.lesionPayloadLabel || "Lesion / Clinical Image Payload"}
                 </label>
                 <label className="border border-dashed border-[#233527] hover:border-[#5a8f66] bg-[#050a07] rounded-[2px] p-8 sm:p-12 text-center transition cursor-pointer flex flex-col items-center justify-center gap-4">
                   <input
@@ -585,10 +610,10 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                       {compressedSize && (
                         <span className="text-xs font-mono font-bold text-[#84ba90] bg-[#070e0a] px-3 py-1.5 rounded-[2px] border border-[#1b2b20] flex items-center gap-2">
                           <Check size={13} />
-                          <span>{compressedSize} KB &middot; OPTIMIZED FOR 2G EDGE TELEMETRY</span>
+                          <span>{compressedSize} KB &middot; {t.compressedNotice || "OPTIMIZED FOR 2G EDGE TELEMETRY"}</span>
                         </span>
                       )}
-                      <span className="text-xs font-mono text-[#8a9990] uppercase">CLICK TO RE-ACQUIRE IMAGE</span>
+                      <span className="text-xs font-mono text-[#8a9990] uppercase">{t.clickToReacquire || "CLICK TO RE-ACQUIRE IMAGE"}</span>
                     </div>
                   ) : (
                     <>
@@ -597,10 +622,10 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                       </div>
                       <div>
                         <span className="text-sm font-mono font-bold text-[#e8e6df] block uppercase">
-                          CAPTURE OR SELECT LESION IMAGE
+                          {t.captureOrSelect || "CAPTURE OR SELECT LESION IMAGE"}
                         </span>
                         <span className="text-xs font-mono text-[#8a9990] mt-1 block uppercase">
-                          AUTO-COMPRESSION ACTIVE (&lt; 500 KB PAYLOAD)
+                          {t.autoCompressActive || "AUTO-COMPRESSION ACTIVE (< 500 KB PAYLOAD)"}
                         </span>
                       </div>
                     </>
@@ -611,23 +636,27 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               {/* Lesion Body Part Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  Affected Anatomical Location
+                  {t.affectedAnatomicalLocation || "Affected Anatomical Location"}
                 </label>
                 <div className="flex flex-wrap gap-2.5">
-                  {BODY_PARTS.map((bp) => (
-                    <button
-                      key={bp.id}
-                      type="button"
-                      onClick={() => setLesionPart(bp.id)}
-                      className={`px-4 py-2 rounded-[2px] font-mono text-xs font-semibold uppercase transition border cursor-pointer ${
-                        lesionPart === bp.id
-                          ? "bg-[#0e1c14] border-[#5a8f66] text-[#84ba90] shadow-[0_0_10px_rgba(90,143,102,0.2)] font-bold"
-                          : "bg-[#050a07] border-[#1b2b20] text-[#8a9990] hover:border-[#2d4535]"
-                      }`}
-                    >
-                      {bp.label}
-                    </button>
-                  ))}
+                  {BODY_PARTS.map((bp) => {
+                    const bpLabel = lang === "hi" ? bp.labelHi : lang === "ta" ? bp.labelTa : bp.labelEn;
+
+                    return (
+                      <button
+                        key={bp.id}
+                        type="button"
+                        onClick={() => setLesionPart(bp.id)}
+                        className={`px-4 py-2 rounded-[2px] font-mono text-xs font-semibold uppercase transition border cursor-pointer ${
+                          lesionPart === bp.id
+                            ? "bg-[#0e1c14] border-[#5a8f66] text-[#84ba90] shadow-[0_0_10px_rgba(90,143,102,0.2)] font-bold"
+                            : "bg-[#050a07] border-[#1b2b20] text-[#8a9990] hover:border-[#2d4535]"
+                        }`}
+                      >
+                        {bpLabel}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </motion.div>
@@ -645,17 +674,17 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             >
               <div className="border-b border-[#1b2b20] pb-4">
                 <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  STEP 04 // GEOTAG &amp; AUDIO RECORD
+                  {t.stepGps || "STEP 04 // GEOTAG & AUDIO RECORD"}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  GIS Telemetry &amp; Voice Annotation
+                  {t.stepGpsTitle || "GIS Telemetry & Voice Annotation"}
                 </h3>
               </div>
 
               {/* GPS Geotag Card */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  GIS Farm Coordinates
+                  {t.gisFarmCoordinates || "GIS Farm Coordinates"}
                 </label>
                 <div className="bg-[#050a07] border border-[#1b2b20] p-4 rounded-[2px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono">
                   <div className="space-y-1">
@@ -674,7 +703,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                     className="bg-[#0d1c13] hover:bg-[#13281c] border border-[#2d523a] text-[#84ba90] text-xs font-bold px-4 py-2 rounded-[2px] transition flex items-center gap-2 shrink-0 cursor-pointer shadow-sm"
                   >
                     {isDetectingGps ? <Loader2 size={13} className="animate-spin" /> : <MapPin size={13} />}
-                    <span>ACQUIRE GPS</span>
+                    <span>{t.acquireGps || "ACQUIRE GPS"}</span>
                   </button>
                 </div>
               </div>
@@ -682,7 +711,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               {/* Voice Notes */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  Acoustic Symptom Dictation (Optional)
+                  {t.voiceAnnotationLabel || "Acoustic Symptom Dictation (Optional)"}
                 </label>
                 <div className="space-y-3">
                   <button
@@ -695,14 +724,14 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                     }`}
                   >
                     <Mic size={15} className={isRecordingVoice ? "text-[#b5555f]" : "text-[#84ba90]"} />
-                    <span>{isRecordingVoice ? "CAPTURING AUDIO... TAP TO STOP" : "RECORD VOICE OBSERVATION"}</span>
+                    <span>{isRecordingVoice ? (t.capturingAudio || "CAPTURING AUDIO... TAP TO STOP") : (t.recordVoice ? t.recordVoice.toUpperCase() : "RECORD VOICE OBSERVATION")}</span>
                   </button>
 
                   <textarea
                     rows={4}
                     value={voiceTranscript}
                     onChange={(e) => setVoiceTranscript(e.target.value)}
-                    placeholder="Audio transcript will populate here or type additional clinical notes..."
+                    placeholder={t.voicePlaceholder || "Audio transcript will populate here or type additional clinical notes..."}
                     className="w-full bg-[#050a07] border border-[#1b2b20] rounded-[2px] p-3 text-xs sm:text-sm font-mono text-[#e8e6df] placeholder-[#4e6054] focus:outline-none focus:border-[#5a8f66] transition"
                   />
                 </div>
@@ -722,29 +751,29 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             >
               <div className="border-b border-[#1b2b20] pb-4">
                 <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  STEP 05 // VERIFICATION
+                  {t.stepReview || "STEP 05 // VERIFICATION"}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  Inspection Payload Review
+                  {t.stepReviewTitle || "Inspection Payload Review"}
                 </h3>
               </div>
 
               {/* Review Summary Details */}
               <div className="bg-[#050a07] border border-[#1b2b20] rounded-[2px] p-5 sm:p-6 space-y-4 font-mono text-xs sm:text-sm">
                 <div className="flex items-center justify-between pb-3 border-b border-[#1b2b20]">
-                  <span className="text-[#8a9990] uppercase text-xs">ANIMAL SPECIES:</span>
+                  <span className="text-[#8a9990] uppercase text-xs">{t.summaryAnimalSpecies || "ANIMAL SPECIES:"}</span>
                   <strong className="text-[#e8e6df] font-bold">{species} &middot; {breed}</strong>
                 </div>
 
                 <div className="flex items-center justify-between pb-3 border-b border-[#1b2b20]">
-                  <span className="text-[#8a9990] uppercase text-xs">NDLM TAG ID:</span>
+                  <span className="text-[#8a9990] uppercase text-xs">{t.summaryNdlmTag || "NDLM TAG ID:"}</span>
                   <span className="font-bold text-[#84ba90]">
-                    {tagId ? tagId : "UNREGISTERED_TAG"}
+                    {tagId ? tagId : (t.unregisteredTag || "UNREGISTERED_TAG")}
                   </span>
                 </div>
 
                 <div className="space-y-1.5 pb-3 border-b border-[#1b2b20]">
-                  <span className="text-[#8a9990] uppercase text-xs block">SYMPTOMS ({Object.keys(selectedSymptoms).length}):</span>
+                  <span className="text-[#8a9990] uppercase text-xs block">{t.summarySymptoms || "SYMPTOMS"} ({Object.keys(selectedSymptoms).length}):</span>
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(selectedSymptoms).map(([code, val]) => (
                       <span key={code} className="bg-[#0d1a12] text-[#84ba90] border border-[#2d523a] px-2.5 py-1 rounded-[2px] text-xs">
@@ -755,12 +784,12 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                 </div>
 
                 <div className="flex items-center justify-between pb-3 border-b border-[#1b2b20]">
-                  <span className="text-[#8a9990] uppercase text-xs">LESION SITE:</span>
+                  <span className="text-[#8a9990] uppercase text-xs">{t.summaryLesionSite || "LESION SITE:"}</span>
                   <strong className="text-[#e8e6df]">{lesionPart}</strong>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[#8a9990] uppercase text-xs">GIS POSITION:</span>
+                  <span className="text-[#8a9990] uppercase text-xs">{t.summaryGisPosition || "GIS POSITION:"}</span>
                   <span className="text-[#8a9990] text-xs">
                     {gpsLocation?.village}, {gpsLocation?.district} ({gpsLocation?.lat}, {gpsLocation?.lng})
                   </span>
@@ -775,7 +804,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                 className="w-full bg-[#5a8f66] hover:bg-[#689f75] text-white font-mono font-bold text-sm sm:text-base uppercase tracking-wider py-4 px-6 rounded-[2px] shadow-lg shadow-[#5a8f66]/25 flex items-center justify-center gap-2.5 transition cursor-pointer"
               >
                 <Sparkles size={18} />
-                <span>GENERATE DIAGNOSTIC REPORT</span>
+                <span>{t.generateReportBtn || "GENERATE DIAGNOSTIC REPORT"}</span>
               </button>
             </motion.div>
           )}
@@ -791,7 +820,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
           className="bg-[#080f0b] hover:bg-[#101c15] border border-[#1b2b20] disabled:opacity-20 text-[#8a9990] hover:text-[#e8e6df] px-6 py-3 rounded-[2px] font-mono font-bold text-xs sm:text-sm uppercase flex items-center gap-2 transition cursor-pointer"
         >
           <ChevronLeft size={15} />
-          <span>PREVIOUS</span>
+          <span>{t.previousBtn || "PREVIOUS"}</span>
         </button>
 
         {currentStep < 5 && (
@@ -800,7 +829,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             onClick={() => goToStep(currentStep + 1)}
             className="bg-[#5a8f66] hover:bg-[#689f75] text-white border border-[#5a8f66] px-8 py-3 rounded-[2px] font-mono font-bold text-xs sm:text-sm uppercase flex items-center gap-2 transition cursor-pointer shadow-md shadow-[#5a8f66]/20"
           >
-            <span>NEXT</span>
+            <span>{t.nextBtn || "NEXT"}</span>
             <ChevronRight size={15} />
           </button>
         )}
@@ -823,7 +852,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
 
               <div className="space-y-1 font-mono">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#e8e6df]">
-                  INFERENCE ENGINE ACTIVE
+                  {t.inferenceEngineActive || "INFERENCE ENGINE ACTIVE"}
                 </h3>
                 <p className="text-[10px] text-[#84ba90] tracking-wide h-6 flex items-center justify-center">
                   {phaseMessages[analysisPhase]}
@@ -843,7 +872,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               </div>
 
               <p className="text-[9px] text-[#8a9990] font-mono uppercase tracking-wider">
-                {isOffline ? "ON-DEVICE SCREENING ENGINE [OFFLINE]" : "NDLM CLOUD MULTIMODAL INFERENCE"}
+                {isOffline ? (t.onDeviceEngine || "ON-DEVICE SCREENING ENGINE [OFFLINE]") : (t.cloudEngine || "NDLM CLOUD MULTIMODAL INFERENCE")}
               </p>
             </motion.div>
           </div>

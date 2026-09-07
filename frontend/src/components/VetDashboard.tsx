@@ -135,16 +135,16 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
               <Stethoscope size={13} />
             </div>
             <h2 className="font-mono text-xs font-semibold tracking-wider text-[#84ba90] uppercase">
-              VETERINARY_EPIDEMIOLOGICAL_FEED // SURVEILLANCE_DISPATCH
+              {t.vetBannerTitle}
             </h2>
           </div>
           <p className="text-xs text-[#8a9990]">
-            District Anand surveillance grid. Direct telemetry ingestion from NDLM client apps with AI differential verification.
+            {t.vetBannerDesc}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1 text-[10px] font-mono text-[#8a9990]">
-            <span>TOTAL_RECORDS: {cases.length}</span>
-            <span className="text-[#b5555f] font-semibold">CRITICAL_OUTBREAKS: {criticalCount}</span>
-            <span className="text-[#c17a35]">HIGH_SEVERITY: {highCount}</span>
+            <span>{t.totalRecords} {cases.length}</span>
+            <span className="text-[#b5555f] font-semibold">{t.criticalOutbreaks} {criticalCount}</span>
+            <span className="text-[#c17a35]">{t.highSeverity} {highCount}</span>
             <span>CELL: NADRS_ZONE_04</span>
           </div>
         </div>
@@ -158,7 +158,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
             className="text-xs font-mono uppercase bg-[#0d1a12] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] px-3 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-            <span>POLL_QUEUE</span>
+            <span>{t.pollQueue}</span>
           </button>
         </div>
       </div>
@@ -168,7 +168,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[#8a9990] mr-1 flex items-center gap-1">
             <Filter size={12} />
-            <span>URGENCY:</span>
+            <span>{t.urgencyFilterLabel}</span>
           </span>
           {["ALL", "CRITICAL", "HIGH", "MEDIUM"].map((lvl) => (
             <button
@@ -186,7 +186,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[#8a9990] mr-1">STATUS:</span>
+          <span className="text-[#8a9990] mr-1">{t.statusFilterLabel}</span>
           {["ALL", "SYNCED", "UNDER_REVIEW", "VERIFIED"].map((st) => (
             <button
               key={st}
@@ -220,10 +220,10 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
             <CheckCircle2 size={18} />
           </div>
           <h4 className="font-mono text-xs font-semibold text-[#e8e6df] uppercase tracking-wider">
-            NO_CASES_MATCH_FILTER_PARAMETERS
+            {t.noCasesMatch}
           </h4>
           <p className="text-xs text-[#8a9990]">
-            All incidents corresponding to selected urgency and lifecycle filters are resolved or triaged.
+            {t.noCasesMatchDesc}
           </p>
         </div>
       ) : (
@@ -291,7 +291,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                   className="bg-[#0d1c13] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] text-[11px] font-mono uppercase px-3 py-1.5 rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Stethoscope size={12} />
-                  <span>REVIEW_TRIAGE</span>
+                  <span>{t.reviewTriageBtn}</span>
                 </button>
               </div>
             </motion.div>
@@ -312,17 +312,17 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
               <div className="flex items-center justify-between pb-3 border-b border-[#1b2b20]">
                 <div>
                   <span className="text-[10px] font-mono text-[#8a9990] uppercase">
-                    EPIDEMIOLOGICAL_TRIAGE // CASE #{selectedCase.id.substring(0, 8)}
+                    {t.triageModalTitle} // CASE #{selectedCase.id.substring(0, 8)}
                   </span>
                   <h3 className="text-sm font-mono font-bold text-[#e8e6df] uppercase">
-                    CLINICAL_VALIDATION_&_NDLM_DISPATCH
+                    {t.triageModalSubtitle}
                   </h3>
                 </div>
                 <button
                   onClick={() => setSelectedCase(null)}
                   className="text-[#8a9990] hover:text-[#e8e6df] p-1 font-mono text-xs uppercase cursor-pointer"
                 >
-                  [ESC]
+                  {t.dismissBtn}
                 </button>
               </div>
 
@@ -352,7 +352,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                   {/* Triage action selector */}
                   <div>
                     <label className="block text-[11px] font-mono uppercase text-[#8a9990] mb-1">
-                      TRIAGE_PROTOCOL_ACTION
+                      {t.triageProtocolAction}
                     </label>
                     <select
                       value={action}
@@ -369,7 +369,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                   {/* Confirmed Disease Code */}
                   <div>
                     <label className="block text-[11px] font-mono uppercase text-[#8a9990] mb-1">
-                      CONFIRMED_CLINICAL_DIAGNOSIS
+                      {t.confirmedDiagnosis}
                     </label>
                     <select
                       value={confirmedDisease}
@@ -387,7 +387,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                   {/* Clinical Notes & Prescription */}
                   <div>
                     <label className="block text-[11px] font-mono uppercase text-[#8a9990] mb-1">
-                      OFFICIAL_PRESCRIPTION_&_CARE_DIRECTIVE
+                      {t.prescriptionDirective}
                     </label>
                     <textarea
                       rows={3}
@@ -407,7 +407,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                         onChange={(e) => setQuarantineAdvised(e.target.checked)}
                         className="rounded-[2px] border-[#1b2b20] bg-[#050a07] text-[#5a8f66] focus:ring-0"
                       />
-                      <span className="text-[#c5d2ca]">Advise strict farm boundary quarantine to livestock owner</span>
+                      <span className="text-[#c5d2ca]">{t.quarantineDirective}</span>
                     </label>
 
                     <label className="flex items-center gap-2.5 text-[#c17a35] cursor-pointer">
@@ -417,7 +417,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                         onChange={(e) => setPushToNdlm(e.target.checked)}
                         className="rounded-[2px] border-[#1b2b20] bg-[#050a07] text-[#c17a35] focus:ring-0"
                       />
-                      <span className="font-semibold">TRANSMIT INCIDENCE TO NDLM / NADRS CENTRAL EPIDEMIC CELL</span>
+                      <span className="font-semibold">{t.transmitNdlmDirective}</span>
                     </label>
                   </div>
 
@@ -426,7 +426,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                       onClick={() => setSelectedCase(null)}
                       className="px-3 py-2 text-xs uppercase text-[#8a9990] hover:text-[#e8e6df] transition-colors cursor-pointer"
                     >
-                      [CANCEL]
+                      {t.cancelBtn}
                     </button>
                     <button
                       onClick={handleSubmitTriage}
@@ -434,7 +434,7 @@ export const VetDashboard: React.FC<VetDashboardProps> = ({ lang }) => {
                       className="bg-[#5a8f66] hover:bg-[#689f75] text-white text-xs font-semibold font-mono uppercase px-5 py-2 rounded-[2px] transition-colors flex items-center gap-1.5 shadow-md shadow-[#5a8f66]/25 cursor-pointer"
                     >
                       <Send size={12} />
-                      <span>{submittingTriage ? "DISPATCHING..." : "COMMIT_TRIAGE"}</span>
+                      <span>{submittingTriage ? "DISPATCHING..." : t.commitTriageBtn}</span>
                     </button>
                   </div>
                 </div>

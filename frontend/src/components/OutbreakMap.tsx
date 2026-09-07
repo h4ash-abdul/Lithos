@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
 import { AlertOctagon, ShieldAlert, Layers, Filter, CheckCircle2, Crosshair } from "lucide-react";
+import { Language, translations } from "../locales/i18n";
 import { api } from "../services/api";
 
 const createPulsingMarkerIcon = (urgency: string) => {
@@ -24,7 +25,12 @@ const createPulsingMarkerIcon = (urgency: string) => {
   });
 };
 
-export const OutbreakMap: React.FC = () => {
+interface OutbreakMapProps {
+  lang?: Language;
+}
+
+export const OutbreakMap: React.FC<OutbreakMapProps> = ({ lang = "en" }) => {
+  const t = translations[lang];
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDisease, setSelectedDisease] = useState<string>("");
@@ -57,11 +63,11 @@ export const OutbreakMap: React.FC = () => {
               <Crosshair size={13} />
             </div>
             <h3 className="font-mono text-xs font-semibold text-[#84ba90] uppercase tracking-wider">
-              GIS_EPIDEMIOLOGICAL_SURVEILLANCE // SPATIAL_TELEMETRY
+              {t.spatialTelemetryTitle || "GIS_EPIDEMIOLOGICAL_SURVEILLANCE // SPATIAL_TELEMETRY"}
             </h3>
           </div>
           <p className="text-xs text-[#8a9990]">
-            Anand district livestock cluster tracking with active transmission vectors (30-day temporal window).
+            {t.spatialTelemetryDesc || "Anand district livestock cluster tracking with active transmission vectors (30-day temporal window)."}
           </p>
         </div>
 
@@ -73,7 +79,7 @@ export const OutbreakMap: React.FC = () => {
             onChange={(e) => setSelectedDisease(e.target.value)}
             className="text-xs border border-[#1b2b20] rounded-[2px] px-3 py-1.5 text-[#e8e6df] focus:outline-none focus:border-[#5a8f66] bg-[#050a07] cursor-pointer"
           >
-            <option value="">ALL NOTIFIABLE DISEASES</option>
+            <option value="">{t.allNotifiableDiseases || "ALL NOTIFIABLE DISEASES"}</option>
             <option value="LUMPY_SKIN_DISEASE">LUMPY SKIN DISEASE (LSD)</option>
             <option value="FOOT_AND_MOUTH_DISEASE">FOOT & MOUTH DISEASE (FMD)</option>
             <option value="BLACKLEG">BLACKLEG (BQ)</option>
@@ -159,19 +165,19 @@ export const OutbreakMap: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5 text-[#e8e6df]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#b5555f] inline-block shadow-[0_0_6px_#b5555f]"></span>
-            CRITICAL_CLUSTER (EPIDEMIC)
+            {t.criticalCluster || "CRITICAL_CLUSTER (EPIDEMIC)"}
           </span>
           <span className="flex items-center gap-1.5 text-[#e8e6df]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#c17a35] inline-block"></span>
-            HIGH_URGENCY (LSD)
+            {t.highUrgencyLegend || "HIGH_URGENCY (LSD)"}
           </span>
           <span className="flex items-center gap-1.5 text-[#e8e6df]">
             <span className="w-2 h-2 rounded-full bg-[#5a8f66] inline-block shadow-[0_0_6px_rgba(90,143,102,0.4)]"></span>
-            ROUTINE_MONITORING
+            {t.routineMonitoring || "ROUTINE_MONITORING"}
           </span>
         </div>
         <span className="text-[#c5d2ca]">
-          ANALYZED_CASES: {data?.total_cases_analyzed || 0}
+          {t.analyzedCases || "ANALYZED_CASES:"} {data?.total_cases_analyzed || 0}
         </span>
       </div>
     </div>

@@ -16,7 +16,16 @@ const ColorBends = React.lazy(() => import("./components/ColorBends"));
 const BOTANICAL_HERO_BG = "/images/bg-rock-reveal.webp";
 
 export function App() {
-  const [lang, setLang] = useState<Language>("en");
+  const [lang, setLangState] = useState<Language>(() => {
+    const saved = localStorage.getItem("ndlm_lang") as Language;
+    return saved && ["en", "hi", "ta"].includes(saved) ? saved : "en";
+  });
+
+  const setLang = (newLang: Language) => {
+    setLangState(newLang);
+    localStorage.setItem("ndlm_lang", newLang);
+  };
+
   const [role, setRole] = useState<"FARMER" | "VET" | "ADMIN">("FARMER");
   const [isOffline, setIsOffline] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "intake" | "cases" | "vet" | "education">("overview");
@@ -68,11 +77,11 @@ export function App() {
   }
 
   const steps: StepItem[] = [
-    { id: "overview", num: "0", label: "OVERVIEW" },
-    { id: "intake", num: "1", label: "ANIMAL INTAKE" },
-    { id: "cases", num: "2", label: "OUTBOX QUEUE", badge: pendingCount },
-    { id: "vet", num: "3", label: "VET SURVEILLANCE" },
-    { id: "education", num: "4", label: "KNOWLEDGE BASE" }
+    { id: "overview", num: "0", label: t.tabOverview || "OVERVIEW" },
+    { id: "intake", num: "1", label: t.tabIntake || "ANIMAL INTAKE" },
+    { id: "cases", num: "2", label: t.tabCases || "OUTBOX QUEUE", badge: pendingCount },
+    { id: "vet", num: "3", label: t.tabVet || "VET SURVEILLANCE" },
+    { id: "education", num: "4", label: t.tabEducation || "KNOWLEDGE BASE" }
   ];
 
   return (
@@ -95,6 +104,8 @@ export function App() {
             <LithosHero
               onStartIntake={() => setActiveTab("intake")}
               onNavigateTab={(tab) => setActiveTab(tab)}
+              lang={lang}
+              onLanguageChange={setLang}
             />
           </motion.div>
         ) : (
@@ -244,7 +255,7 @@ export function App() {
                   {activeTab === "vet" && (
                     <div className="space-y-8">
                       <VetDashboard lang={lang} />
-                      <OutbreakMap />
+                      <OutbreakMap lang={lang} />
                     </div>
                   )}
 

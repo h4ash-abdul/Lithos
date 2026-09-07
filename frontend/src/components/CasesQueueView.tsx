@@ -103,25 +103,25 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] text-[#84ba90] tracking-wider uppercase font-semibold">
-              LOCAL_OUTBOX // DISCONNECTED_BUFFER
+              {t.outboxControlPanel}
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[2px] bg-[#0d1611] border border-[#1b2b20] text-[#8a9990]">
-              TOTAL: {cases.length}
+              {t.totalLabel} {cases.length}
             </span>
           </div>
           <p className="text-xs text-[#8a9990]">
-            Deterministic offline journal with client-side UUID generation and cryptographic conflict-free sync.
+            {t.outboxDesc}
           </p>
           <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-[#8a9990]">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#c17a35]"></span>
-              PENDING: {pendingCount}
+              {t.pending}: {pendingCount}
             </span>
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#5a8f66]"></span>
-              RECONCILED: {syncedCount}
+              {t.reconciledLabel} {syncedCount}
             </span>
-            <span>STORAGE: INDEXEDDB_V1</span>
+            <span>{t.storageIndexedDb}</span>
           </div>
         </div>
 
@@ -132,7 +132,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
               className="bg-[#0d1a12] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] text-xs font-mono uppercase px-3 py-2 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Plus size={13} className="text-[#84ba90]" />
-              <span>NEW_INTAKE</span>
+              <span>{t.newIntakeBtn}</span>
             </button>
           )}
 
@@ -146,7 +146,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
             }`}
           >
             <RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />
-            <span>{isSyncing ? "RECONCILING..." : `SYNC_BUFFER (${pendingCount})`}</span>
+            <span>{isSyncing ? t.reconcilingBtn : `${t.syncBufferBtn} (${pendingCount})`}</span>
           </button>
         </div>
       </div>
@@ -168,7 +168,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
               onClick={() => setSyncMsg(null)}
               className="text-[#8a9990] hover:text-[#e8e6df] text-[10px] uppercase font-mono cursor-pointer"
             >
-              [DISMISS]
+              {t.dismissBtn}
             </button>
           </motion.div>
         )}
@@ -182,10 +182,10 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
           </div>
           <div className="max-w-md mx-auto space-y-1">
             <h4 className="font-mono text-xs text-[#e8e6df] uppercase tracking-wider font-semibold">
-              QUEUE_EMPTY // NO_UNSYNCHRONIZED_TELEMETRY
+              {t.queueEmptyTitle}
             </h4>
             <p className="text-xs text-[#8a9990]">
-              All diagnostic records have been reconciled with the central ledger, or no records have been staged in this session.
+              {t.queueEmptyDesc}
             </p>
           </div>
           {onNewIntake && (
@@ -194,7 +194,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
                 onClick={onNewIntake}
                 className="bg-[#0d1a12] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] text-xs font-mono uppercase px-4 py-2 rounded-[2px] transition-colors cursor-pointer"
               >
-                INITIALIZE_CASE_INTAKE
+                {t.initCaseIntake}
               </button>
             </div>
           )}
@@ -226,7 +226,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
                           : "bg-[#181109] border-[#c17a35]/60 text-[#c17a35]"
                       }`}
                     >
-                      {isSynced ? "RECONCILED // NDLM" : "STAGED_OFFLINE // PENDING"}
+                      {isSynced ? t.reconciledNdlm : t.stagedOffline}
                     </span>
 
                     {/* UUID */}
@@ -267,7 +267,7 @@ export const CasesQueueView: React.FC<CasesQueueViewProps> = ({ lang, onOpenRepo
                       className="bg-[#0d1c13] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] text-[11px] font-mono uppercase px-3 py-1.5 rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <FileText size={12} />
-                      <span>INSPECT_REPORT</span>
+                      <span>{t.inspectReport}</span>
                     </button>
                   </div>
                 )}

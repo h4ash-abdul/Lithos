@@ -54,12 +54,12 @@ export const Header: React.FC<HeaderProps> = ({
                   </h1>
                   {onBackToHero && (
                     <span className="hidden sm:inline-block font-mono text-[9px] text-[#84ba90] bg-[#0d1c13] border border-[#2d523a] px-1.5 py-0.5 rounded-[2px] group-hover:bg-[#5a8f66] group-hover:text-white transition">
-                      &larr; OVERVIEW
+                      {t.returnToOverview || "← OVERVIEW"}
                     </span>
                   )}
                 </div>
                 <p className="text-[10px] font-mono text-[#8a9990] hidden sm:block tracking-wide uppercase">
-                  Domestic Livestock Disease Diagnostic & Reporting Gateway
+                  {t.gatewaySubtitle || "Domestic Livestock Disease Diagnostic & Reporting Gateway"}
                 </p>
               </div>
             </div>
@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-[#c17a35]" : "bg-[#5a8f66] shadow-[0_0_6px_rgba(90,143,102,0.5)]"}`} />
-              <span>{isOffline ? "OFFLINE" : "LIVE"}</span>
+              <span>{isOffline ? (t.offlineStatus || "OFFLINE") : (t.liveStatus || "LIVE")}</span>
             </button>
           </div>
 
@@ -82,14 +82,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden xl:flex items-center gap-3 px-3 py-1 bg-[#0a120e]/80 border border-[#1e2e24] rounded-[2px] text-[10px] font-mono text-[#8a9990] backdrop-blur-sm">
             <span className="font-bold text-[#e8e6df] uppercase tracking-wider flex items-center gap-1.5">
               <Activity size={12} className="text-[#84ba90]" />
-              <span>SYS TELEMETRY</span>
+              <span>{t.sysTelemetry || "SYS TELEMETRY"}</span>
             </span>
             <div className="w-[1px] h-3 bg-[#1e2e24]" />
-            <span>SECTOR: <strong className="text-[#c5d2ca]">ANAND DIST</strong></span>
+            <span>{t.sector || "SECTOR"}: <strong className="text-[#c5d2ca]">ANAND DIST</strong></span>
             <div className="w-[1px] h-3 bg-[#1e2e24]" />
-            <span>LATENCY: <strong className="text-[#c5d2ca]">14MS</strong></span>
+            <span>{t.latency || "LATENCY"}: <strong className="text-[#c5d2ca]">14MS</strong></span>
             <div className="w-[1px] h-3 bg-[#1e2e24]" />
-            <span>OUTBOX: <strong className={pendingCount > 0 ? "text-[#c17a35]" : "text-[#8a9990]"}>{pendingCount} PENDING</strong></span>
+            <span>{t.outbox || "OUTBOX"}: <strong className={pendingCount > 0 ? "text-[#c17a35]" : "text-[#8a9990]"}>{pendingCount} {t.pending || "PENDING"}</strong></span>
           </div>
 
           {/* Controls Group */}
@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Click to toggle simulated offline state"
             >
               <span className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-[#c17a35]" : "bg-[#5a8f66] shadow-[0_0_6px_rgba(90,143,102,0.5)]"}`} />
-              <span>{isOffline ? "OFFLINE · LOCAL CACHE" : "SECURE · FEDERATED NDLM"}</span>
+              <span>{isOffline ? (t.localCache || "OFFLINE · LOCAL CACHE") : (t.federatedNdlm || "SECURE · FEDERATED NDLM")}</span>
               {pendingCount > 0 && (
                 <span className="bg-[#b5555f] text-white text-[9px] px-1 py-0.2 rounded-[2px] font-bold">
                   {pendingCount}
@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : "text-[#8a9990] hover:text-[#e8e6df]"
                 }`}
               >
-                FARMER
+                {t.roleFarmer ? t.roleFarmer.split(" ")[0].toUpperCase() : "FARMER"}
               </button>
               <button
                 onClick={() => onRoleChange("VET")}
@@ -134,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : "text-[#8a9990] hover:text-[#e8e6df]"
                 }`}
               >
-                VET
+                {t.roleVet ? t.roleVet.split(" ")[0].toUpperCase() : "VET"}
               </button>
               <button
                 onClick={() => onRoleChange("ADMIN")}
@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : "text-[#8a9990] hover:text-[#e8e6df]"
                 }`}
               >
-                ADMIN
+                {t.roleAdmin ? t.roleAdmin.split(" ")[0].toUpperCase() : "ADMIN"}
               </button>
             </div>
 

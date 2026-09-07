@@ -113,7 +113,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
                 <ShieldAlert className="text-[#c17a35] shrink-0 mt-0.5" size={15} />
                 <div className="space-y-0.5">
                   <h4 className="text-[10px] font-bold text-[#c17a35] uppercase tracking-wider">
-                    STATUTORY_ADVISORY // NDLM_COMPLIANCE
+                    {t.statutoryAdvisory}
                   </h4>
                   <p className="text-[11px] text-[#e8e6df] font-sans leading-relaxed">
                     {report.legal_disclaimer || t.legalDisclaimer}
@@ -127,7 +127,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span className="text-[10px] text-[#8a9990] uppercase tracking-wider">
-                    PRIMARY_SUSPECTED_PATHOLOGY
+                    {t.primarySuspectedPathology}
                   </span>
                   <h3 className={`text-base font-bold ${currentUrgency.text} mt-0.5 truncate`}>
                     {report.primary_disease_name.toUpperCase()}
@@ -145,7 +145,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
 
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`px-2.5 py-1 rounded-[2px] text-[10px] font-bold uppercase tracking-wider ${currentUrgency.badge}`}>
-                    URGENCY: {report.urgency_level}
+                    {t.severityLabel} {report.urgency_level}
                   </span>
                 </div>
               </div>
@@ -157,10 +157,10 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
                   className="bg-[#0d1c13] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] px-3 py-1.5 rounded-[2px] font-mono text-[11px] uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Volume2 size={13} />
-                  <span>{isPlayingAudio ? "HALT_SYNTHESIS" : "PLAY_NARRATION"}</span>
+                  <span>{isPlayingAudio ? t.haltSynthesis : t.playNarration}</span>
                 </button>
                 <span className="text-[10px] text-[#8a9990] font-mono">
-                  ENGINE_LATENCY: {report.inference_latency_ms || 15}MS
+                  {t.latency}: {report.inference_latency_ms || 15}MS
                 </span>
               </div>
             </div>
@@ -169,7 +169,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
             <div className="space-y-2">
               <h4 className="text-[11px] font-mono font-semibold text-[#84ba90] uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 size={13} />
-                <span>INTERIM_FIELD_CARE_PROTOCOLS</span>
+                <span>{t.interimFieldCareProtocols}</span>
               </h4>
 
               <div className="space-y-1.5">
@@ -216,7 +216,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
             {report.ranked_diagnoses && report.ranked_diagnoses.length > 1 && (
               <div className="space-y-2">
                 <h4 className="text-[11px] font-mono font-semibold text-[#8a9990] uppercase tracking-wider">
-                  DIFFERENTIAL_DIAGNOSES // ALTERNATIVE_HYPOTHESES
+                  {t.differentialDiagnosesTitle}
                 </h4>
                 <div className="space-y-1">
                   {report.ranked_diagnoses.slice(1).map((diag: any, idx: number) => (
@@ -240,7 +240,7 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
                 onClick={onClose}
                 className="bg-[#0d1c13] hover:bg-[#13281c] text-[#84ba90] border border-[#2d523a] text-xs uppercase px-4 py-2 rounded-[2px] transition-colors cursor-pointer"
               >
-                [CLOSE_DOSSIER]
+                {t.closeBtn}
               </button>
             </div>
           </div>

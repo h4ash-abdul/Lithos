@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, CheckCircle2, XCircle, Volume2, ShieldCheck, AlertTriangle, ChevronDown, ChevronUp, FileCode } from "lucide-react";
-import { Language } from "../locales/i18n";
+import { Language, translations } from "../locales/i18n";
 import { api } from "../services/api";
 
 interface EducationLibraryProps {
@@ -9,6 +9,7 @@ interface EducationLibraryProps {
 }
 
 export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
+  const t = translations[lang];
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [playingCode, setPlayingCode] = useState<string | null>(null);
@@ -64,19 +65,17 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
               <BookOpen size={13} />
             </div>
             <h2 className="font-mono text-xs font-semibold text-[#84ba90] uppercase tracking-wider">
-              {lang === "hi" 
-                ? "EPIDEMIOLOGICAL_KNOWLEDGE_BASE // पशु स्वास्थ्य मार्गदर्शिका" 
-                : "EPIDEMIOLOGICAL_KNOWLEDGE_BASE // ICAR_NDLM_FIELD_GUIDES"}
+              {t.knowledgeBaseTitle || "EPIDEMIOLOGICAL_KNOWLEDGE_BASE // ICAR_NDLM_FIELD_GUIDES"}
             </h2>
           </div>
           <p className="text-xs text-[#8a9990]">
-            Statutory veterinary clinical protocols, vector transmission topologies, and verified field bio-security SOPs.
+            {t.knowledgeBaseDesc || "Statutory veterinary clinical protocols, vector transmission topologies, and verified field bio-security SOPs."}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] font-mono px-2 py-1 rounded-[2px] bg-[#0d1611] border border-[#1b2b20] text-[#8a9990]">
-            PROTOCOLS: {articles.length}
+            {t.protocolsCount || "PROTOCOLS:"} {articles.length}
           </span>
         </div>
       </div>
@@ -138,7 +137,7 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
                       ) : (
                         <Volume2 size={12} />
                       )}
-                      <span>{isPlaying ? "STOP_AUDIO" : "LISTEN"}</span>
+                      <span>{isPlaying ? (t.stopAudio || "HALT AUDIO") : (t.listenAudio || "LISTEN")}</span>
                     </button>
 
                     <button
@@ -164,7 +163,7 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
                         <AlertTriangle className="text-[#c17a35] mt-0.5 shrink-0" size={14} />
                         <div>
                           <strong className="text-[#c17a35] uppercase tracking-wider block text-[11px]">
-                            VECTOR_TRANSMISSION_TOPOLOGY:
+                            {t.transmissionVector || "VECTOR_TRANSMISSION_TOPOLOGY"}:
                           </strong>
                           <span className="text-[#c5d2ca] mt-0.5 block font-sans">{art.transmission}</span>
                         </div>
@@ -173,7 +172,7 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
                       {/* Visual Signs */}
                       <div className="space-y-2">
                         <h4 className="text-[11px] font-mono font-semibold text-[#84ba90] uppercase tracking-wider">
-                          PATHOLOGICAL_SYMPTOM_SIGNALS:
+                          {t.symptomsObserved || "PATHOLOGICAL_SYMPTOM_SIGNALS"}:
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {art.visual_cues?.map((cue: string, idx: number) => (
@@ -190,7 +189,7 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
                         <div className="bg-[#0a140e] border border-[#2d523a]/50 rounded-[2px] p-3.5 space-y-2">
                           <h5 className="text-[11px] font-mono font-semibold text-[#84ba90] flex items-center gap-1.5 uppercase tracking-wider">
                             <CheckCircle2 size={13} className="text-[#84ba90]" />
-                            <span>STATUTORY_DIRECTIVES (DOS)</span>
+                            <span>{t.biosecurityProtocol || "STATUTORY_DIRECTIVES"} (DOS)</span>
                           </h5>
                           <ul className="space-y-1.5 text-xs text-[#c5d2ca] font-sans">
                             {art.dos?.map((item: string, idx: number) => (

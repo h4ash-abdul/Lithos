@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Globe } from "lucide-react";
+import { Language, translations } from "../locales/i18n";
 
 interface LithosHeroProps {
   onStartIntake?: () => void;
   onNavigateTab?: (tab: "intake" | "cases" | "vet" | "education") => void;
+  lang?: Language;
+  onLanguageChange?: (lang: Language) => void;
 }
 
 const BG_IMAGE_1 = "/images/bg-rock-base.webp";
@@ -11,7 +14,13 @@ const BG_IMAGE_2 = "/images/bg-rock-reveal.webp";
 
 const SPOTLIGHT_R = 260;
 
-export const LithosHero: React.FC<LithosHeroProps> = ({ onStartIntake, onNavigateTab }) => {
+export const LithosHero: React.FC<LithosHeroProps> = ({ 
+  onStartIntake, 
+  onNavigateTab,
+  lang = "en",
+  onLanguageChange
+}) => {
+  const t = translations[lang];
   const revealDivRef = useRef<HTMLDivElement | null>(null);
   const mouse = useRef({ x: -999, y: -999 });
   const smooth = useRef({ x: -999, y: -999 });
@@ -99,48 +108,67 @@ export const LithosHero: React.FC<LithosHeroProps> = ({ onStartIntake, onNavigat
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="text-white bg-white/20 px-5 py-1.5 rounded-full text-sm font-semibold transition-colors"
           >
-            Overview
+            {t.tabOverview || "Overview"}
           </button>
           <button
             onClick={() => onNavigateTab?.("intake")}
             className="text-white/80 hover:bg-white/10 hover:text-white transition-colors px-4 py-1.5 rounded-full text-sm font-medium"
           >
-            Animal Intake
+            {t.tabIntake || "Animal Intake"}
           </button>
           <button
             onClick={() => onNavigateTab?.("vet")}
             className="text-white/80 hover:bg-white/10 hover:text-white transition-colors px-4 py-1.5 rounded-full text-sm font-medium"
           >
-            Vet Surveillance
+            {t.tabVet || "Vet Surveillance"}
           </button>
           <button
             onClick={() => onNavigateTab?.("education")}
             className="text-white/80 hover:bg-white/10 hover:text-white transition-colors px-4 py-1.5 rounded-full text-sm font-medium"
           >
-            Field Guides
+            {t.tabEducation || "Knowledge Base"}
           </button>
           <button
             onClick={() => onNavigateTab?.("cases")}
             className="text-white/80 hover:bg-white/10 hover:text-white transition-colors px-4 py-1.5 rounded-full text-sm font-medium"
           >
-            Outbox Queue
+            {t.tabCases || "Outbox Queue"}
           </button>
         </div>
 
-        {/* Right Desktop Button / Mobile Action */}
-        <div className="flex items-center gap-3">
+        {/* Right Desktop Button / Mobile Action + Language Selector */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onLanguageChange && (
+            <div className="flex items-center gap-1 bg-black/60 border border-white/20 rounded-full px-2.5 py-1 text-[10px] font-mono text-[#8a9990] backdrop-blur-md">
+              <Globe size={11} className="text-[#8a9990]" />
+              {(["en", "hi", "ta"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => onLanguageChange(l)}
+                  className={`px-1 rounded uppercase font-bold transition cursor-pointer ${
+                    lang === l
+                      ? "text-[#84ba90] bg-[#132319] border border-[#2d523a]"
+                      : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={onStartIntake}
             className="hidden md:flex items-center gap-2 bg-[#5a8f66] hover:bg-[#689f75] text-white text-sm sm:text-base font-semibold px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 shadow-lg shadow-[#5a8f66]/25 cursor-pointer"
           >
-            <span>Launch Portal</span>
+            <span>{t.launchPortal || "Launch Portal"}</span>
             <ArrowRight size={16} />
           </button>
           <button
             onClick={onStartIntake}
             className="md:hidden bg-[#5a8f66] text-white text-xs font-semibold px-4 py-2 rounded-full active:scale-95 shadow-md"
           >
-            Intake
+            {t.tabIntake || "Intake"}
           </button>
         </div>
       </nav>
@@ -212,7 +240,7 @@ export const LithosHero: React.FC<LithosHeroProps> = ({ onStartIntake, onNavigat
             onClick={onStartIntake}
             className="bg-[#5a8f66] hover:bg-[#689f75] text-white text-base font-semibold px-8 sm:px-10 py-3.5 sm:py-4 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-2xl hover:shadow-[#5a8f66]/30 flex items-center gap-2.5 cursor-pointer pointer-events-auto"
           >
-            <span>Start Diagnosis</span>
+            <span>{t.startDiagnosis || "Start Diagnosis"}</span>
             <ArrowRight size={18} />
           </button>
         </div>
