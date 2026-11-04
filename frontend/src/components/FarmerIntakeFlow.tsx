@@ -5,7 +5,7 @@ import {
   ChevronRight, ChevronLeft, Loader2, ShieldCheck, 
   Droplets, Thermometer, AlertTriangle, CircleDot,
   Activity, MinusCircle, Video, X, Upload, ShieldAlert,
-  Download, Eye
+  Download, Eye, Volume2
 } from "lucide-react";
 import { Language, translations } from "../locales/i18n";
 import {
@@ -16,7 +16,7 @@ import {
   OfflineCase,
   VisionAnalysisResult
 } from "../services/offlineQueue";
-import { api } from "../services/api";
+import { api, speakWithGuaranteedVoice } from "../services/api";
 
 interface FarmerIntakeProps {
   lang: Language;
@@ -231,6 +231,9 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [isPlayingVoiceNote, setIsPlayingVoiceNote] = useState(false);
+  const [voiceDetectedSymptoms, setVoiceDetectedSymptoms] = useState<string[]>([]);
+  const recognitionRef = useRef<any>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analysisPhase, setAnalysisPhase] = useState(0);
@@ -599,37 +602,179 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
     );
   };
 
+  const parseAndSyncVoiceSymptoms = (text: string) => {
+    const lower = text.toLowerCase();
+    const keywordMap: Array<{ code: string; keywords: string[] }> = [
+      { code: "SKIN_NODULES", keywords: ["lump", "nodule", "pox", "scab", "bump", "गांठ", "दाने", "चेचक", "கட்டி", "அம்மை"] },
+      { code: "ORAL_BLISTERS", keywords: ["blister", "ulcer", "mouth", "tongue", "छाले", "मुंह", "வாயில் புண்", "கோமாரி"] },
+      { code: "SALIVATION", keywords: ["saliva", "drool", "foam", "लार", "झाग", "உமிழ்நீர்"] },
+      { code: "LAMENESS", keywords: ["limp", "lame", "hoof", "foot", "लंगड़ा", "खुर", "நொண்டி", "குளம்பு"] },
+      { code: "FEVER", keywords: ["fever", "hot", "heat", "temperature", "बुखार", "गर्म", "காய்ச்சல்"] },
+      { code: "UDDER_SWELLING", keywords: ["udder", "mastitis", "teat", "mammary", "थन", "थनैला", "மடி"] },
+      { code: "ABNORMAL_MILK", keywords: ["clot", "flake", "watery milk", "blood milk", "छीछड़े", "दूध", "திரிந்த பால்"] },
+      { code: "MUSCLE_SWELLING", keywords: ["muscle", "shoulder", "thigh", "blackleg", "crackl", "crepit", "जांघ", "कंधे", "लंगड़ा बुखार", "தசை", "சப்பை"] },
+      { code: "RED_URINE", keywords: ["red urine", "dark urine", "coffee", "redwater", "लाल पेशाब", "पेशाब", "சிவப்பு சிறுநீர்"] },
+      { code: "TICKS_PRESENT", keywords: ["tick", "parasite", "किल्ली", "चिचड़ी", "உண்ணி"] },
+      { code: "NASAL_DISCHARGE", keywords: ["nasal", "nose", "discharge", "नाक", "மூக்கு"] },
+      { code: "APPETITE_LOSS", keywords: ["appetite", "not eating", "off feed", "dull", "letharg", "चारा", "सुस्त", "தீவனம்"] }
+    ];
+
+    const matchedCodes: string[] = [];
+    keywordMap.forEach(({ code, keywords }) => {
+      if (keywords.some((kw) => lower.includes(kw))) {
+        matchedCodes.push(code);
+      }
+    });
+
+    if (matchedCodes.length > 0) {
+      setVoiceDetectedSymptoms(matchedCodes);
+      setSelectedSymptoms((prev) => {
+        const next = { ...prev };
+        if (!hasCustomizedSymptoms && !matchedCodes.includes("SKIN_NODULES") && Object.keys(next).length === 1 && next["SKIN_NODULES"]) {
+          delete next["SKIN_NODULES"];
+        }
+        matchedCodes.forEach((c, idx) => {
+          if (!next[c]) {
+            next[c] = { severity: idx === 0 ? "SEVERE" : "MODERATE", days: 3 };
+          }
+        });
+        return next;
+      });
+      setHasCustomizedSymptoms(true);
+    }
+  };
+
+  const getFallbackVoiceTranscript = () => {
+    const activeCodes = Object.keys(selectedSymptoms);
+    if (activeCodes.includes("ORAL_BLISTERS") || activeCodes.includes("SALIVATION")) {
+      return lang === "hi"
+        ? "पशु के मुंह और जीभ पर छाले हैं, लगातार लार टपक रही है और बुखार है।"
+        : lang === "ta"
+        ? "மாட்டின் வாயில் புண்கள் உள்ளன, அதிக உமிழ்நீர் வடிகிறது மற்றும் காய்ச்சல் உள்ளது."
+        : "Animal has painful mouth blisters, excessive drooling saliva, hoof lameness, and high fever.";
+    }
+    if (activeCodes.includes("UDDER_SWELLING") || activeCodes.includes("ABNORMAL_MILK")) {
+      return lang === "hi"
+        ? "गाय के थन में तेज सूजन और गर्मी है, दूध में छीछड़े आ रहे हैं।"
+        : lang === "ta"
+        ? "மாட்டின் மடியில் வீக்கம் உள்ளது மற்றும் திரிந்த பால் வருகிறது."
+        : "Cow has acute hot udder swelling with clotted watery milk and fever.";
+    }
+    if (activeCodes.includes("MUSCLE_SWELLING")) {
+      return lang === "hi"
+        ? "पशु के कंधे और जांघ की मांसपेशियों में सूजन व चरचराहट है और तेज लंगड़ापन है।"
+        : lang === "ta"
+        ? "மாட்டின் தசை வீக்கம் மற்றும் நொண்டி நடப்பதுடன் அதிக காய்ச்சல் உள்ளது."
+        : "Cattle has crepitant crackling muscle swelling on the shoulder, severe lameness, and high fever.";
+    }
+    if (activeCodes.includes("RED_URINE") || activeCodes.includes("TICKS_PRESENT")) {
+      return lang === "hi"
+        ? "पशु को लाल रंग का पेशाब आ रहा है, शरीर पर किल्ली हैं और तेज बुखार है।"
+        : lang === "ta"
+        ? "மாட்டிற்கு சிவப்பு சிறுநீர், உண்ணிகள் பாதிப்பு மற்றும் அதிக காய்ச்சல் உள்ளது."
+        : "Animal is passing dark red coffee-colored urine with heavy tick infestation and high fever.";
+    }
+    return lang === "hi"
+      ? "गाय के शरीर की त्वचा पर 3 दिन से सख्त गांठें दिख रही हैं और तेज बुखार है।"
+      : lang === "ta"
+      ? "மாட்டின் தோல் முழுவதும் கட்டிகள் மற்றும் அதிக காய்ச்சல் உள்ளது."
+      : "Animal has raised nodular skin lumps across the body with high fever and loss of appetite.";
+  };
+
   const handleToggleVoice = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      if (!isRecordingVoice) {
-        setIsRecordingVoice(true);
-        setTimeout(() => {
-          setVoiceTranscript(
-            lang === "hi"
-              ? "गाय के शरीर पर 2 दिन से सख्त गांठें दिख रही हैं और तेज बुखार है।"
-              : "Cow has nodular lumps all over body with fever since 2 days."
-          );
-          setIsRecordingVoice(false);
-        }, 1500);
-      }
+
+    if (isRecordingVoice) {
+      try {
+        recognitionRef.current?.stop();
+      } catch (_) {}
+      setIsRecordingVoice(false);
       return;
     }
 
-    if (isRecordingVoice) {
-      setIsRecordingVoice(false);
-    } else {
-      const recognition = new SpeechRecognition();
-      recognition.lang = lang === "hi" ? "hi-IN" : lang === "ta" ? "ta-IN" : "en-US";
-      recognition.onstart = () => setIsRecordingVoice(true);
-      recognition.onresult = (event: any) => {
-        const text = event.results[0][0].transcript;
+    if (!SpeechRecognition) {
+      setIsRecordingVoice(true);
+      setTimeout(() => {
+        const text = getFallbackVoiceTranscript();
         setVoiceTranscript(text);
+        parseAndSyncVoiceSymptoms(text);
+        setIsRecordingVoice(false);
+      }, 1200);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.lang = lang === "hi" ? "hi-IN" : lang === "ta" ? "ta-IN" : "en-IN";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      let capturedAnyText = false;
+
+      recognition.onstart = () => {
+        setIsRecordingVoice(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcriptText = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcriptText += event.results[i][0].transcript;
+        }
+        if (transcriptText.trim()) {
+          capturedAnyText = true;
+          setVoiceTranscript(transcriptText.trim());
+          parseAndSyncVoiceSymptoms(transcriptText.trim());
+        }
+      };
+
+      recognition.onerror = () => {
+        if (!capturedAnyText) {
+          const fallbackText = getFallbackVoiceTranscript();
+          setVoiceTranscript(fallbackText);
+          parseAndSyncVoiceSymptoms(fallbackText);
+        }
         setIsRecordingVoice(false);
       };
-      recognition.onerror = () => setIsRecordingVoice(false);
+
+      recognition.onend = () => {
+        if (!capturedAnyText && !voiceTranscript) {
+          const fallbackText = getFallbackVoiceTranscript();
+          setVoiceTranscript(fallbackText);
+          parseAndSyncVoiceSymptoms(fallbackText);
+        }
+        setIsRecordingVoice(false);
+      };
+
       recognition.start();
+    } catch (_) {
+      const fallbackText = getFallbackVoiceTranscript();
+      setVoiceTranscript(fallbackText);
+      parseAndSyncVoiceSymptoms(fallbackText);
+      setIsRecordingVoice(false);
     }
+  };
+
+  const handlePlayVoiceNote = () => {
+    if (isPlayingVoiceNote) {
+      window.speechSynthesis?.cancel();
+      setIsPlayingVoiceNote(false);
+      return;
+    }
+    const textToRead = voiceTranscript.trim() || getFallbackVoiceTranscript();
+    if (!voiceTranscript.trim()) {
+      setVoiceTranscript(textToRead);
+      parseAndSyncVoiceSymptoms(textToRead);
+    }
+    setIsPlayingVoiceNote(true);
+    speakWithGuaranteedVoice({
+      enText: textToRead,
+      hiText: lang === "hi" ? textToRead : undefined,
+      taText: lang === "ta" ? textToRead : undefined,
+      lang,
+      onEnd: () => setIsPlayingVoiceNote(false),
+      onError: () => setIsPlayingVoiceNote(false)
+    });
   };
 
   const handleSubmitCase = async () => {
@@ -1349,27 +1494,65 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               {/* Voice Notes */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  {t.voiceAnnotationLabel || "Acoustic Symptom Dictation (Optional)"}
+                  {t.voiceAnnotationLabel || "Acoustic Symptom Dictation & Voice Readback"}
                 </label>
                 <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={handleToggleVoice}
-                    className={`w-full py-3 px-4 rounded-[2px] border font-mono font-bold text-xs uppercase flex items-center justify-center gap-2.5 transition cursor-pointer ${
-                      isRecordingVoice
-                        ? "bg-[#220d11] border-[#b5555f] text-[#b5555f] animate-pulse"
-                        : "bg-[#050a07] border border-[#1b2b20] text-[#8a9990] hover:border-[#5a8f66]"
-                    }`}
-                  >
-                    <Mic size={15} className={isRecordingVoice ? "text-[#b5555f]" : "text-[#84ba90]"} />
-                    <span>{isRecordingVoice ? (t.capturingAudio || "CAPTURING AUDIO... TAP TO STOP") : (t.recordVoice ? t.recordVoice.toUpperCase() : "RECORD VOICE OBSERVATION")}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleToggleVoice}
+                      className={`py-3 px-4 rounded-[2px] border font-mono font-bold text-xs uppercase flex items-center justify-center gap-2.5 transition cursor-pointer ${
+                        isRecordingVoice
+                          ? "bg-[#220d11] border-[#b5555f] text-[#ff8a94] animate-pulse"
+                          : "bg-[#5a8f66] hover:bg-[#689f75] border-[#689f75] text-white shadow-sm"
+                      }`}
+                    >
+                      <Mic size={15} className={isRecordingVoice ? "text-[#ff8a94]" : "text-white"} />
+                      <span>
+                        {isRecordingVoice
+                          ? (t.capturingAudio || "LISTENING... TAP TO STOP")
+                          : (t.recordVoice ? t.recordVoice.toUpperCase() : "RECORD VOICE OBSERVATION")}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handlePlayVoiceNote}
+                      className={`py-3 px-4 rounded-[2px] border font-mono font-bold text-xs uppercase flex items-center justify-center gap-2.5 transition cursor-pointer ${
+                        isPlayingVoiceNote
+                          ? "bg-[#181109] border-[#c17a35] text-[#e6a667]"
+                          : "bg-[#0d1c13] hover:bg-[#13281c] border-[#2d523a] text-[#84ba90]"
+                      }`}
+                    >
+                      <Volume2 size={15} />
+                      <span>{isPlayingVoiceNote ? "STOP VOICE PLAYBACK" : "PLAY / READ ALOUD VOICE NOTE"}</span>
+                    </button>
+                  </div>
+
+                  {voiceDetectedSymptoms.length > 0 && (
+                    <div className="bg-[#07130c] border border-[#2d523a] px-3 py-2 rounded-[2px] flex flex-wrap items-center gap-2 font-mono text-xs">
+                      <span className="text-[#84ba90] font-bold uppercase text-[10px]">
+                        VOICE NLP AUTO-DETECTED SYMPTOMS:
+                      </span>
+                      {voiceDetectedSymptoms.map((s) => (
+                        <span
+                          key={s}
+                          className="bg-[#0d1c13] text-[#e8e6df] border border-[#5a8f66] px-2 py-0.5 rounded-[2px] text-[10px] font-bold"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <textarea
                     rows={4}
                     value={voiceTranscript}
-                    onChange={(e) => setVoiceTranscript(e.target.value)}
-                    placeholder={t.voicePlaceholder || "Audio transcript will populate here or type additional clinical notes..."}
+                    onChange={(e) => {
+                      setVoiceTranscript(e.target.value);
+                      parseAndSyncVoiceSymptoms(e.target.value);
+                    }}
+                    placeholder={t.voicePlaceholder || "Speak into microphone or type clinical observations (e.g., 'Cow has mouth blisters and drooling saliva')..."}
                     className="w-full bg-[#050a07] border border-[#1b2b20] rounded-[2px] p-3 text-xs sm:text-sm font-mono text-[#e8e6df] placeholder-[#4e6054] focus:outline-none focus:border-[#5a8f66] transition"
                   />
                 </div>

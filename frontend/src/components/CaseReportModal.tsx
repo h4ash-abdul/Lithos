@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, ShieldAlert, Volume2, CheckCircle2, X, ChevronDown, ChevronUp, Stethoscope, Clock, AlertOctagon, Terminal } from "lucide-react";
 import { Language, translations } from "../locales/i18n";
+import { speakWithGuaranteedVoice } from "../services/api";
 
 interface CaseReportModalProps {
   report: any;
@@ -61,18 +62,35 @@ export const CaseReportModal: React.FC<CaseReportModalProps> = ({ report, lang, 
       .map((g: any) => `${g.title}. ${g.instructions}`)
       .join(". ");
 
-    const fullSpeech = `${report.primary_disease_name}. ${careTexts}. ${report.legal_disclaimer}`;
+    const fullSpeechEn = `Suspected diagnosis: ${report.primary_disease_name}. Confidence: ${Math.round((report.primary_confidence || 0.85) * 100)} percent. Urgency level: ${report.urgency_level}. Interim care protocol: ${careTexts}. ${report.legal_disclaimer}`;
 
-    const utterance = new SpeechSynthesisUtterance(fullSpeech);
-    if (lang === "hi") utterance.lang = "hi-IN";
-    else if (lang === "ta") utterance.lang = "ta-IN";
-    else utterance.lang = "en-US";
+    const hiSpeechMap: Record<string, string> = {
+      LUMPY_SKIN_DISEASE: "लम्पी त्वचा रोग की आशंका। पशु को तुरंत अलग बाड़े में रखें और घावों को नीम के पानी या पोटेशियम परमैंगनेट से साफ करें।",
+      FOOT_AND_MOUTH_DISEASE: "खुरपका-मुंहपका रोग की आशंका। मुंह के छालों को बेकिंग सोडा के पानी से धोएं और नरम दलिया व छाछ पिलाएं।",
+      SHEEP_GOAT_POX: "भेड़ और बकरी चेचक की आशंका। बीमार पशु को तुरंत झुंड से अलग करें और दानों पर एंटीसेप्टिक लगाएं।",
+      BOVINE_MASTITIS: "थनैला रोग की आशंका। सूजे हुए थन से हर दो घंटे में दूध निकालकर नष्ट करें और ठंडी पट्टी रखें।",
+      BLACKLEG: "लंगड़ा बुखार की गंभीर आशंका। तुरंत पशु चिकित्सक को बुलाएं और सूजन को कभी न काटें।",
+      BOVINE_BABESIOSIS: "टिक फीवर और लाल पेशाब रोग की आशंका। पशु को ठंडी छाया में रखें और इलेक्ट्रोलाइट पानी पिलाएं।"
+    };
 
-    utterance.onend = () => setIsPlayingAudio(false);
-    utterance.onerror = () => setIsPlayingAudio(false);
+    const taSpeechMap: Record<string, string> = {
+      LUMPY_SKIN_DISEASE: "கன்றுக்குட்டி தோல் கட்டி நோய் கண்டறியப்பட்டுள்ளது. மாட்டை உடனடியாக தனிமைப்படுத்தி வேப்பிலை நீரால் புண்களை சுத்தம் செய்யவும்.",
+      FOOT_AND_MOUTH_DISEASE: "கோமாரி நோய் கண்டறியப்பட்டுள்ளது. வாய் மற்றும் கால் புண்களை சமையல் சோடா நீரால் கழுவி மென்மையான கஞ்சி வழங்கவும்.",
+      SHEEP_GOAT_POX: "ஆட்டு அம்மை நோய் கண்டறியப்பட்டுள்ளது. பாதிக்கப்பட்ட ஆடுகளை மந்தையிலிருந்து உடனடியாக பிரிக்கவும்.",
+      BOVINE_MASTITIS: "மடி வீக்க நோய் கண்டறியப்பட்டுள்ளது. வீங்கிய மடியிலிருந்து இரண்டு மணி நேரத்திற்கு ஒருமுறை பாலை கறந்து அகற்றவும்.",
+      BLACKLEG: "சப்பை நோய் அவசர எச்சரிக்கை. உடனடியாக கால்நடை மருத்துவரை அழைக்கவும்.",
+      BOVINE_BABESIOSIS: "உண்ணி காய்ச்சல் கண்டறியப்பட்டுள்ளது. மாட்டை குளிர்ந்த நிழலில் வைத்து எலக்ட்ரோலைட் தண்ணீர் வழங்கவும்."
+    };
 
-    window.speechSynthesis.speak(utterance);
     setIsPlayingAudio(true);
+    speakWithGuaranteedVoice({
+      enText: fullSpeechEn,
+      hiText: hiSpeechMap[report.primary_disease_code] || fullSpeechEn,
+      taText: taSpeechMap[report.primary_disease_code] || fullSpeechEn,
+      lang,
+      onEnd: () => setIsPlayingAudio(false),
+      onError: () => setIsPlayingAudio(false)
+    });
   };
 
   return (

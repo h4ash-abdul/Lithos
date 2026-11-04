@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, CheckCircle2, XCircle, Volume2, ShieldCheck, AlertTriangle, ChevronDown, ChevronUp, FileCode } from "lucide-react";
 import { Language, translations } from "../locales/i18n";
-import { api } from "../services/api";
+import { api, speakWithGuaranteedVoice } from "../services/api";
 
 interface EducationLibraryProps {
   lang: Language;
@@ -43,16 +43,15 @@ export const EducationLibrary: React.FC<EducationLibraryProps> = ({ lang }) => {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(art.audio_script);
-    if (lang === "hi") utterance.lang = "hi-IN";
-    else if (lang === "ta") utterance.lang = "ta-IN";
-    else utterance.lang = "en-US";
-
-    utterance.onend = () => setPlayingCode(null);
-    utterance.onerror = () => setPlayingCode(null);
-
-    window.speechSynthesis.speak(utterance);
     setPlayingCode(art.disease_code);
+    speakWithGuaranteedVoice({
+      enText: art.audio_script || `${art.title}. ${art.summary}`,
+      hiText: art.audio_script_hi || art.audio_script,
+      taText: art.audio_script_ta || art.audio_script,
+      lang,
+      onEnd: () => setPlayingCode(null),
+      onError: () => setPlayingCode(null)
+    });
   };
 
   return (
