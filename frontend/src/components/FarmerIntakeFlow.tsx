@@ -1091,7 +1091,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               </AnimatePresence>
 
               {/* Camera & File Action Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={isCameraOpen ? stopCameraStream : startLiveCamera}
@@ -1115,16 +1115,6 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                     className="hidden"
                   />
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleSimulateNonAnimalRejection}
-                  className="py-3.5 px-4 rounded-[2px] bg-[#170d0f] hover:bg-[#241216] border border-[#6e3038] text-[#e0828c] font-mono text-xs font-bold uppercase flex items-center justify-center gap-2 transition cursor-pointer"
-                  title="Test how the Animal-Only Gatekeeper rejects non-animal screenshots or documents"
-                >
-                  <ShieldAlert size={15} />
-                  <span>TEST NON-ANIMAL REJECTION</span>
-                </button>
               </div>
 
               {cameraError && (
@@ -1271,88 +1261,13 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                         <Camera size={24} />
                       </div>
                       <p className="text-xs sm:text-sm font-bold text-[#e8e6df] uppercase">
-                        NO ANIMAL LESION IMAGE LOADED YET
+                        {t.captureOrSelect || "CAPTURE OR UPLOAD ANIMAL LESION IMAGE"}
                       </p>
                       <p className="text-xs text-[#8a9990] max-w-md mx-auto">
-                        Use <strong className="text-[#84ba90]">Open Live Animal Camera</strong>, upload a photo, or click any of the <strong className="text-[#84ba90]">8 Clinical Sample Images</strong> below to test all 6 diseases immediately.
+                        Use <strong className="text-[#84ba90]">Open Live Animal Camera</strong> or click <strong className="text-[#84ba90]">Upload Animal Photo</strong> to scan a clinical lesion image.
                       </p>
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* 8 REAL CLINICAL SAMPLE IMAGES (ALL 6 DISEASES) FOR ONE-CLICK TESTING */}
-              <div className="space-y-3 pt-2 border-t border-[#1b2b20]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-wider block">
-                      CLINICAL SAMPLE TEST GALLERY // ALL 6 LITHOS DISEASES
-                    </span>
-                    <p className="text-xs font-mono text-[#8a9990]">
-                      Click any sample photo below to run the live 224×224 optical classifier, or click the download icon to save the JPG file.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  {CLINICAL_SAMPLE_IMAGES.map((sample) => {
-                    const isSelectedSample = activeSampleId === sample.id;
-                    return (
-                      <div
-                        key={sample.id}
-                        className={`rounded-[2px] border overflow-hidden flex flex-col justify-between transition bg-[#050a07] ${
-                          isSelectedSample
-                            ? "border-2 border-[#5a8f66] shadow-[0_0_14px_rgba(90,143,102,0.3)]"
-                            : "border-[#1b2b20] hover:border-[#375c43]"
-                        }`}
-                      >
-                        <div>
-                          <div className="relative h-32 w-full bg-black overflow-hidden">
-                            <img
-                              src={sample.url}
-                              alt={sample.title}
-                              className="w-full h-full object-cover"
-                            />
-                            <span className="absolute top-2 left-2 bg-[#060d09]/90 border border-[#2d523a] text-[#84ba90] text-[10px] font-mono font-bold px-2 py-0.5 rounded-[2px]">
-                              {sample.diseaseBadge}
-                            </span>
-                            {isSelectedSample && (
-                              <span className="absolute top-2 right-2 bg-[#5a8f66] text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-[2px] flex items-center gap-1">
-                                <Check size={11} /> ACTIVE
-                              </span>
-                            )}
-                          </div>
-                          <div className="p-3 space-y-1 font-mono">
-                            <h5 className="text-xs font-bold text-[#e8e6df] leading-snug">
-                              {sample.title}
-                            </h5>
-                            <p className="text-[10px] text-[#8a9990] leading-normal line-clamp-2">
-                              {sample.caption}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-2.5 pt-0 flex items-center gap-2 font-mono">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectClinicalSample(sample)}
-                            className="flex-1 bg-[#0d1c13] hover:bg-[#5a8f66] text-[#84ba90] hover:text-white border border-[#2d523a] text-[10px] font-bold uppercase py-2 px-2.5 rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
-                          >
-                            <Eye size={12} />
-                            <span>TEST IN SCANNER</span>
-                          </button>
-                          <a
-                            href={sample.url}
-                            download={`${sample.id}.jpg`}
-                            className="bg-[#070e0a] hover:bg-[#132319] text-[#8a9990] hover:text-[#e8e6df] border border-[#1b2b20] p-2 rounded-[2px] transition"
-                            title="Download Sample JPG"
-                          >
-                            <Download size={12} />
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
 
