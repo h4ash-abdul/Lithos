@@ -31,9 +31,11 @@ class DiseaseFusionEngine:
 
         # 3. Multimodal fusion
         fused_rankings: List[RankedDiagnosis] = []
+        included_codes = set()
 
         for rank in symptom_rankings:
             d_code = rank["disease_code"]
+            included_codes.add(d_code)
             symp_score = rank["score"]
             rationale_parts = [rank["rationale"]]
             fused_score = symp_score
@@ -44,17 +46,17 @@ class DiseaseFusionEngine:
 
                 if pred_class == d_code:
                     # Positive vision reinforcement (60% symptom, 40% vision)
-                    if symp_score > 0.05:
+                    if symp_score > 0.15:
                         fused_score = (0.60 * symp_score) + (0.40 * vis_conf)
                     else:
-                        # If farmer uploaded a clear lesion image with minimal symptoms checked, let vision lead
-                        fused_score = max(0.55, (0.60 * symp_score) + (0.40 * vis_conf) + 0.30)
+                        # If farmer uploaded a clear lesion image with minimal matching symptoms, let vision lead
+                        fused_score = max(0.78, (0.60 * max(0.70, symp_score)) + (0.40 * vis_conf))
                     rationale_parts.append(
                         f"Image analysis strongly corroborates diagnosis ({', '.join(vision_result.get('features', []))})."
                     )
                 else:
                     # Cross-penalty if vision strongly indicates another disease
-                    fused_score = (0.75 * symp_score)
+                    fused_score = (0.55 * symp_score)
 
             fused_rankings.append(
                 RankedDiagnosis(
@@ -66,6 +68,23 @@ class DiseaseFusionEngine:
                     key_indicators_matched=rank["key_indicators_matched"]
                 )
             )
+
+        # If vision predicted a valid disease that was filtered by species in symptom_engine, inject it
+        if vision_result and vision_result.get("lesion_detected"):
+            pred_class = vision_result.get("predicted_class")
+            if pred_class in DISEASE_KNOWLEDGE_BASE and pred_class not in included_codes:
+                d_info = DISEASE_KNOWLEDGE_BASE[pred_class]
+                vis_conf = vision_result.get("confidence", 0.85)
+                fused_rankings.append(
+                    RankedDiagnosis(
+                        disease_code=pred_class,
+                        disease_name=d_info["name"],
+                        score=round(min(0.95, 0.45 + 0.45 * vis_conf), 3),
+                        urgency_level=d_info["urgency"],
+                        rationale=f"Image analysis strongly corroborates diagnosis ({', '.join(vision_result.get('features', []))}).",
+                        key_indicators_matched=[]
+                    )
+                )
 
         # Sort again by fused score
         fused_rankings.sort(key=lambda x: x.score, reverse=True)

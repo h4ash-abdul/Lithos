@@ -204,6 +204,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   const [selectedSymptoms, setSelectedSymptoms] = useState<Record<string, { severity: "MILD" | "MODERATE" | "SEVERE"; days: number }>>({
     SKIN_NODULES: { severity: "SEVERE", days: 2 }
   });
+  const [hasCustomizedSymptoms, setHasCustomizedSymptoms] = useState(false);
   const [lesionPart, setLesionPart] = useState("SKIN");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -479,13 +480,93 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   const toggleSymptom = (code: string) => {
     setSelectedSymptoms((prev) => {
       const next = { ...prev };
+      // If user is clicking their first symptom and it's not SKIN_NODULES, clear the initial default SKIN_NODULES
+      if (!hasCustomizedSymptoms && code !== "SKIN_NODULES" && Object.keys(next).length === 1 && next["SKIN_NODULES"]) {
+        delete next["SKIN_NODULES"];
+      }
       if (next[code]) {
         delete next[code];
       } else {
-        next[code] = { severity: "MODERATE", days: 2 };
+        next[code] = { severity: "SEVERE", days: 3 };
       }
       return next;
     });
+    setHasCustomizedSymptoms(true);
+
+    // Auto-align anatomical lesion site with chosen primary symptom
+    if (code === "ORAL_BLISTERS" || code === "SALIVATION") setLesionPart("MOUTH");
+    else if (code === "UDDER_SWELLING" || code === "ABNORMAL_MILK") setLesionPart("UDDER");
+    else if (code === "MUSCLE_SWELLING" || code === "RED_URINE" || code === "TICKS_PRESENT") setLesionPart("GENERAL");
+    else if (code === "LAMENESS") setLesionPart("HOOF");
+    else if (code === "SKIN_NODULES") setLesionPart("SKIN");
+  };
+
+  const applyDiseaseSymptomPreset = (diseaseCode: string) => {
+    setHasCustomizedSymptoms(true);
+    // Clear previous image if it belonged to a different disease so it doesn't override symptom test
+    if (visionAnalysis && visionAnalysis.predicted_class !== diseaseCode) {
+      setVisionAnalysis(null);
+      setImagePreview(null);
+      setCompressedBlob(null);
+      setActiveSampleId(null);
+    }
+    switch (diseaseCode) {
+      case "LUMPY_SKIN_DISEASE":
+        setSpecies("CATTLE");
+        setLesionPart("SKIN");
+        setSelectedSymptoms({
+          SKIN_NODULES: { severity: "SEVERE", days: 4 },
+          FEVER: { severity: "SEVERE", days: 3 },
+          APPETITE_LOSS: { severity: "MODERATE", days: 2 }
+        });
+        break;
+      case "FOOT_AND_MOUTH_DISEASE":
+        setSpecies("CATTLE");
+        setLesionPart("MOUTH");
+        setSelectedSymptoms({
+          ORAL_BLISTERS: { severity: "SEVERE", days: 3 },
+          SALIVATION: { severity: "SEVERE", days: 3 },
+          LAMENESS: { severity: "MODERATE", days: 2 },
+          FEVER: { severity: "MODERATE", days: 2 }
+        });
+        break;
+      case "SHEEP_GOAT_POX":
+        setSpecies("GOAT");
+        setLesionPart("SKIN");
+        setSelectedSymptoms({
+          SKIN_NODULES: { severity: "SEVERE", days: 4 },
+          FEVER: { severity: "SEVERE", days: 3 },
+          NASAL_DISCHARGE: { severity: "SEVERE", days: 3 }
+        });
+        break;
+      case "BOVINE_MASTITIS":
+        setSpecies("CATTLE");
+        setLesionPart("UDDER");
+        setSelectedSymptoms({
+          UDDER_SWELLING: { severity: "SEVERE", days: 3 },
+          ABNORMAL_MILK: { severity: "SEVERE", days: 2 },
+          FEVER: { severity: "MODERATE", days: 2 }
+        });
+        break;
+      case "BLACKLEG":
+        setSpecies("CATTLE");
+        setLesionPart("GENERAL");
+        setSelectedSymptoms({
+          MUSCLE_SWELLING: { severity: "SEVERE", days: 2 },
+          LAMENESS: { severity: "SEVERE", days: 2 },
+          FEVER: { severity: "SEVERE", days: 2 }
+        });
+        break;
+      case "BOVINE_BABESIOSIS":
+        setSpecies("CATTLE");
+        setLesionPart("GENERAL");
+        setSelectedSymptoms({
+          RED_URINE: { severity: "SEVERE", days: 2 },
+          TICKS_PRESENT: { severity: "SEVERE", days: 4 },
+          FEVER: { severity: "SEVERE", days: 3 }
+        });
+        break;
+    }
   };
 
   const updateSymptomSeverity = (code: string, severity: "MILD" | "MODERATE" | "SEVERE") => {
@@ -620,27 +701,20 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
 
           const syncRes = await api.syncCasesBatch(syncPayload.cases);
           const serverCase = syncRes.results[0];
-          let finalAiReport = serverCase.ai_report;
 
           if (compressedBlob && serverCase.server_case_id) {
             try {
-              const mediaRes = await api.uploadMedia(serverCase.server_case_id, compressedBlob, lesionPart);
-              if (mediaRes && mediaRes.updated_ai_report) {
-                finalAiReport = {
-                  ...mediaRes.updated_ai_report,
-                  vision_analysis: mediaRes.updated_ai_report.vision_analysis || visionAnalysis,
-                  image_data_base64: imagePreview
-                };
-              } else {
-                finalAiReport = localFusedReport;
-              }
+              await api.uploadMedia(serverCase.server_case_id, compressedBlob, lesionPart);
             } catch (e) {
               console.error("Media upload error, using client 60:40 fused report", e);
-              finalAiReport = localFusedReport;
             }
-          } else if (imagePreview && visionAnalysis) {
-            finalAiReport = localFusedReport;
           }
+
+          const finalAiReport = {
+            ...localFusedReport,
+            id: serverCase.ai_report?.id || localFusedReport.id,
+            case_id: serverCase.server_case_id
+          };
 
           caseData.server_case_id = serverCase.server_case_id;
           caseData.ai_report = finalAiReport;
@@ -839,13 +913,51 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="bg-[#08100c]/70 backdrop-blur-md rounded-[2px] p-6 sm:p-10 border border-[#1b2b20] space-y-7 shadow-xl"
             >
-              <div className="border-b border-[#1b2b20] pb-4">
-                <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  {t.stepSymptoms || "STEP 02 // CLINICAL SYMPTOMS"}
+              <div className="border-b border-[#1b2b20] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
+                    {t.stepSymptoms || "STEP 02 // CLINICAL SYMPTOMS"}
+                  </span>
+                  <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
+                    {t.stepSymptomsTitle || "Select Observed Pathological Indicators"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSymptoms({});
+                    setHasCustomizedSymptoms(true);
+                  }}
+                  className="bg-[#0d1611] hover:bg-[#18261d] border border-[#2d523a] text-[#84ba90] text-[11px] font-mono font-bold uppercase px-3 py-1.5 rounded-[2px] self-start sm:self-auto cursor-pointer"
+                >
+                  CLEAR ALL SYMPTOMS
+                </button>
+              </div>
+
+              {/* 6-Disease Quick Symptom Preset Bar */}
+              <div className="bg-[#050a07] border border-[#1b2b20] rounded-[2px] p-3.5 space-y-2 font-mono">
+                <span className="text-[10px] text-[#84ba90] font-bold uppercase tracking-wider block">
+                  QUICK DISEASE SYMPTOM PRESETS (1-CLICK TEST FOR ALL 6 DISEASES):
                 </span>
-                <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  {t.stepSymptomsTitle || "Select Observed Pathological Indicators"}
-                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { code: "LUMPY_SKIN_DISEASE", label: "1. Lumpy Skin (LSD)" },
+                    { code: "FOOT_AND_MOUTH_DISEASE", label: "2. Foot & Mouth (FMD)" },
+                    { code: "SHEEP_GOAT_POX", label: "3. Sheep & Goat Pox" },
+                    { code: "BOVINE_MASTITIS", label: "4. Bovine Mastitis" },
+                    { code: "BLACKLEG", label: "5. Blackleg (BQ)" },
+                    { code: "BOVINE_BABESIOSIS", label: "6. Babesiosis (Tick Fever)" }
+                  ].map((p) => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => applyDiseaseSymptomPreset(p.code)}
+                      className="bg-[#0d1c13] hover:bg-[#5a8f66] text-[#84ba90] hover:text-white border border-[#2d523a] text-[11px] font-bold px-3 py-1.5 rounded-[2px] transition cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

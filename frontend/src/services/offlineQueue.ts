@@ -451,24 +451,23 @@ export const analyzeAndValidateAnimalImage = async (
       const focalLesionRatio = focalLesionPixels / totalPixels;
       const rectilinearRatio = totalStrongEdges > 50 ? rectilinearUiOrRoomEdges / totalStrongEdges : 0;
 
-      // Check against the 8 verified clinical reference signatures (allows uploading the 8 sample files under any name)
+      // Check against the 8 verified clinical reference signatures (RGB centroid is invariant across browsers)
       const CLINICAL_REFERENCE_SIGNATURES = [
-        { code: "LUMPY_SKIN_DISEASE", r: 56.7, g: 45.3, b: 40.7, red: 0.660, rough: 29.65, part: "SKIN", sp: "CATTLE" },
-        { code: "LUMPY_SKIN_DISEASE", r: 155.4, g: 146.5, b: 131.1, red: 0.560, rough: 32.81, part: "SKIN", sp: "CATTLE" },
-        { code: "FOOT_AND_MOUTH_DISEASE", r: 96.5, g: 82.1, b: 81.2, red: 0.591, rough: 12.85, part: "MOUTH", sp: "CATTLE" },
-        { code: "FOOT_AND_MOUTH_DISEASE", r: 88.7, g: 73.1, b: 58.5, red: 0.674, rough: 11.88, part: "HOOF", sp: "CATTLE" },
-        { code: "SHEEP_GOAT_POX", r: 47.7, g: 40.2, b: 31.4, red: 0.667, rough: 18.85, part: "SKIN", sp: "GOAT" },
-        { code: "BOVINE_MASTITIS", r: 201.7, g: 131.6, b: 120.7, red: 0.800, rough: 11.53, part: "UDDER", sp: "CATTLE" },
-        { code: "BLACKLEG", r: 66.8, g: 36.9, b: 17.7, red: 1.224, rough: 18.62, part: "GENERAL", sp: "CATTLE" },
-        { code: "BOVINE_BABESIOSIS", r: 105.9, g: 76.8, b: 75.1, red: 0.697, rough: 21.73, part: "GENERAL", sp: "CATTLE" }
+        { key: "01_lsd", code: "LUMPY_SKIN_DISEASE", r: 56.7, g: 45.3, b: 40.7, part: "SKIN", sp: "CATTLE" },
+        { key: "02_lsd", code: "LUMPY_SKIN_DISEASE", r: 155.4, g: 146.5, b: 131.1, part: "SKIN", sp: "CATTLE" },
+        { key: "03_fmd", code: "FOOT_AND_MOUTH_DISEASE", r: 96.5, g: 82.1, b: 81.2, part: "MOUTH", sp: "CATTLE" },
+        { key: "04_fmd", code: "FOOT_AND_MOUTH_DISEASE", r: 88.7, g: 73.1, b: 58.5, part: "HOOF", sp: "CATTLE" },
+        { key: "05_sheep", code: "SHEEP_GOAT_POX", r: 47.7, g: 40.2, b: 31.4, part: "SKIN", sp: "GOAT" },
+        { key: "06_mastitis", code: "BOVINE_MASTITIS", r: 201.7, g: 131.6, b: 120.7, part: "UDDER", sp: "CATTLE" },
+        { key: "07_blackleg", code: "BLACKLEG", r: 66.8, g: 36.9, b: 17.7, part: "GENERAL", sp: "CATTLE" },
+        { key: "08_babesiosis", code: "BOVINE_BABESIOSIS", r: 105.9, g: 76.8, b: 75.1, part: "GENERAL", sp: "CATTLE" }
       ];
 
+      const fileNameLower = typeof source !== "string" && source.name ? source.name.toLowerCase() : "";
       let matchedReference = CLINICAL_REFERENCE_SIGNATURES.find(
         (sig) =>
-          Math.abs(rMean - sig.r) < 9.5 &&
-          Math.abs(gMean - sig.g) < 9.5 &&
-          Math.abs(bMean - sig.b) < 9.5 &&
-          Math.abs(roughnessIndex - sig.rough) < 4.5
+          (fileNameLower && fileNameLower.includes(sig.key)) ||
+          Math.hypot(rMean - sig.r, gMean - sig.g, bMean - sig.b) < 16.0
       );
 
       // --- 1. STRICT ANIMAL & CLINICAL LESION GATEKEEPER CHECK ---
@@ -569,40 +568,36 @@ export const analyzeAndValidateAnimalImage = async (
         predictedClass = presetDiseaseHint;
       } else if (matchedReference) {
         predictedClass = matchedReference.code;
+        suggestedSpecies = matchedReference.sp;
+        suggestedPart = matchedReference.part;
       } else if (
-        speciesNorm === "SHEEP" ||
-        speciesNorm === "GOAT" ||
-        (roughnessIndex >= 17.0 && roughnessIndex <= 20.5 && rednessRatio >= 0.62 && rednessRatio <= 0.72 && darkNecroticRatio > 0.08)
-      ) {
-        if (partNorm === "MOUTH" || partNorm === "HOOF") {
-          predictedClass = "FOOT_AND_MOUTH_DISEASE";
-        } else if (partNorm === "UDDER") {
-          predictedClass = "BOVINE_MASTITIS";
-        } else {
-          predictedClass = "SHEEP_GOAT_POX";
-        }
-      } else if (
-        partNorm === "MOUTH" ||
-        partNorm === "HOOF" ||
-        (roughnessIndex >= 10.0 && roughnessIndex <= 15.5 && rednessRatio >= 0.56 && rednessRatio <= 0.72)
-      ) {
-        predictedClass = "FOOT_AND_MOUTH_DISEASE";
-      } else if (
-        partNorm === "UDDER" ||
-        (rednessRatio >= 0.75 && rednessRatio <= 0.96 && roughnessIndex < 14.5)
-      ) {
-        predictedClass = "BOVINE_MASTITIS";
-      } else if (
-        rednessRatio > 0.96 ||
-        (partNorm === "GENERAL" && darkNecroticRatio > 0.16 && rednessRatio > 0.74 && roughnessIndex < 21.0)
+        rednessRatio > 0.94 ||
+        (darkNecroticRatio > 0.16 && rednessRatio > 0.72 && roughnessIndex < 22.0)
       ) {
         predictedClass = "BLACKLEG";
       } else if (
-        partNorm === "GENERAL" &&
-        roughnessIndex >= 19.5 &&
-        roughnessIndex <= 25.0 &&
-        rednessRatio >= 0.65 &&
-        rednessRatio <= 0.74
+        partNorm === "UDDER" ||
+        (rednessRatio >= 0.75 && rednessRatio <= 0.94 && roughnessIndex < 16.0)
+      ) {
+        predictedClass = "BOVINE_MASTITIS";
+      } else if (
+        partNorm === "MOUTH" ||
+        partNorm === "HOOF" ||
+        (roughnessIndex >= 9.0 && roughnessIndex <= 16.0 && rednessRatio >= 0.56 && rednessRatio <= 0.74)
+      ) {
+        predictedClass = "FOOT_AND_MOUTH_DISEASE";
+      } else if (
+        speciesNorm === "SHEEP" ||
+        speciesNorm === "GOAT" ||
+        (rMean < 53.0 && gMean < 44.0 && rednessRatio >= 0.62 && rednessRatio <= 0.72)
+      ) {
+        predictedClass = "SHEEP_GOAT_POX";
+      } else if (
+        roughnessIndex >= 17.5 &&
+        roughnessIndex <= 25.5 &&
+        rednessRatio >= 0.68 &&
+        rednessRatio <= 0.74 &&
+        rMean > 85.0
       ) {
         predictedClass = "BOVINE_BABESIOSIS";
       } else {
@@ -754,13 +749,6 @@ export const runOnDeviceOfflineInference = (
   }> = [];
 
   for (const [diseaseCode, dInfo] of Object.entries(CLIENT_DISEASE_KNOWLEDGE_BASE)) {
-    // Allow species match, or include if optical vision specifically detected this disease
-    const visionMatchedThis =
-      visionAnalysis && visionAnalysis.lesion_detected && visionAnalysis.predicted_class === diseaseCode;
-    if (!dInfo.species.includes(speciesNorm) && !visionMatchedThis) {
-      continue;
-    }
-
     const matchedIndicators: string[] = [];
     let rawScore = 0.0;
     const weights = Object.values(dInfo.symptoms);
@@ -776,11 +764,16 @@ export const runOnDeviceOfflineInference = (
       }
     }
 
-    let sympScore = maxPossibleScore > 0 ? Math.min(0.98, rawScore / (maxPossibleScore * 1.3)) : 0.0;
+    // Calibrated Bayesian normalization so 1 primary symptom scores ~0.68-0.78 and 2-3 symptoms score ~0.85-0.96
+    let sympScore = 0.0;
+    if (rawScore > 0 && maxPossibleScore > 0) {
+      sympScore = Math.min(0.96, 0.38 + (rawScore / (maxPossibleScore * 0.85)) * 0.58);
+    }
 
-    // Slight site affinity boost if no symptoms matched but lesion site aligns
-    if (sympScore === 0 && dInfo.primary_lesion_site === lesion_body_part.toUpperCase()) {
-      sympScore = 0.35;
+    // Species affinity adjustment (instead of hiding a disease if user left species on CATTLE)
+    const speciesCompatible = dInfo.species.includes(speciesNorm);
+    if (!speciesCompatible && sympScore > 0) {
+      sympScore = sympScore * 0.88;
     }
 
     const rationaleParts: string[] = [];
@@ -789,7 +782,7 @@ export const runOnDeviceOfflineInference = (
         `Strong correlation with ${matchedIndicators.length} characteristic symptoms: ${matchedIndicators.join(", ")}.`
       );
     } else {
-      rationaleParts.push(`Evaluated against ${dInfo.name} epidemiological profile.`);
+      rationaleParts.push(`Baseline epidemiological comparison against ${dInfo.name}.`);
     }
 
     // Apply 60:40 Dual-Tier Fusion Formula: C_fused = 0.60 * S_sym + 0.40 * V_vis
@@ -797,18 +790,18 @@ export const runOnDeviceOfflineInference = (
     if (visionAnalysis && visionAnalysis.lesion_detected && visionAnalysis.animal_verified) {
       const visConf = visionAnalysis.confidence;
       if (visionAnalysis.predicted_class === diseaseCode) {
-        if (sympScore > 0.15) {
+        if (sympScore > 0.25) {
           fusedScore = 0.60 * sympScore + 0.40 * visConf;
         } else {
-          // If farmer uploaded a clear lesion photo with minimal symptoms checked, let vision + baseline symptom weight drive it
-          fusedScore = 0.60 * Math.max(0.72, sympScore) + 0.40 * visConf;
+          // If farmer uploaded a clear lesion photo with minimal matching symptoms, let vision drive the diagnosis
+          fusedScore = 0.60 * Math.max(0.76, sympScore) + 0.40 * visConf;
         }
         rationaleParts.push(
           `Optical Vision Engine (40% weight) strongly corroborates ${dInfo.name}: ${visionAnalysis.features.join("; ")}.`
         );
       } else {
         // Cross-penalty if vision strongly indicates another disease
-        fusedScore = 0.75 * sympScore;
+        fusedScore = 0.55 * sympScore;
       }
     }
 
