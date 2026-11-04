@@ -1,4 +1,4 @@
-﻿from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 
 class SymptomInput(BaseModel):
@@ -42,6 +42,7 @@ class AiReportResponse(BaseModel):
     legal_disclaimer: str
     inference_latency_ms: float = 0.0
     model_version: str = "v1.0-mvp"
+    vision_analysis: Optional[Dict[str, Any]] = None
 
 class DiagnoseRequest(BaseModel):
     species: str = Field(..., json_schema_extra={"example": "CATTLE"})

@@ -232,7 +232,16 @@ class CaseService:
         
         db.commit()
         db.refresh(media)
-        return media
+        return CaseMediaResponse(
+            id=media.id,
+            media_type=media.media_type,
+            storage_path=media.storage_path,
+            thumbnail_path=media.thumbnail_path,
+            lesion_body_part=media.lesion_body_part,
+            file_size_bytes=media.file_size_bytes,
+            created_at=media.created_at,
+            updated_ai_report=updated_ai
+        )
 
     def get_case_detail(self, db: Session, case_id: str) -> CaseDetailResponse:
         c = db.query(Case).filter(Case.id == case_id).first()

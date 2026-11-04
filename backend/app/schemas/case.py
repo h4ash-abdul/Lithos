@@ -1,4 +1,4 @@
-﻿from typing import List, Optional
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from app.schemas.ai import SymptomInput, AiReportResponse
@@ -44,6 +44,7 @@ class CaseMediaResponse(BaseModel):
     lesion_body_part: str
     file_size_bytes: int
     created_at: datetime
+    updated_ai_report: Optional[AiReportResponse] = None
 
 class CaseDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

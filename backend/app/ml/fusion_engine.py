@@ -1,4 +1,4 @@
-﻿import time
+import time
 from typing import List, Optional
 from app.schemas.ai import SymptomInput, RankedDiagnosis, InterimCareStep, AiReportResponse
 from app.ml.knowledge_base import DISEASE_KNOWLEDGE_BASE, LEGAL_DISCLAIMER_TEXT
@@ -27,7 +27,7 @@ class DiseaseFusionEngine:
         # 2. Vision analysis
         vision_result = None
         if image_paths and len(image_paths) > 0:
-            vision_result = vision_classifier.analyze_image(image_paths[0], lesion_body_part=lesion_site)
+            vision_result = vision_classifier.analyze_image(image_paths[0], lesion_body_part=lesion_site, species=species)
 
         # 3. Multimodal fusion
         fused_rankings: List[RankedDiagnosis] = []
@@ -44,7 +44,11 @@ class DiseaseFusionEngine:
 
                 if pred_class == d_code:
                     # Positive vision reinforcement (60% symptom, 40% vision)
-                    fused_score = (0.60 * symp_score) + (0.40 * vis_conf)
+                    if symp_score > 0.05:
+                        fused_score = (0.60 * symp_score) + (0.40 * vis_conf)
+                    else:
+                        # If farmer uploaded a clear lesion image with minimal symptoms checked, let vision lead
+                        fused_score = max(0.55, (0.60 * symp_score) + (0.40 * vis_conf) + 0.30)
                     rationale_parts.append(
                         f"Image analysis strongly corroborates diagnosis ({', '.join(vision_result.get('features', []))})."
                     )
@@ -106,7 +110,8 @@ class DiseaseFusionEngine:
             interim_care_guidance=care_steps,
             legal_disclaimer=LEGAL_DISCLAIMER_TEXT,
             inference_latency_ms=latency_ms,
-            model_version="v1.0-mvp"
+            model_version="v1.0-mvp",
+            vision_analysis=vision_result
         )
 
 fusion_engine = DiseaseFusionEngine()

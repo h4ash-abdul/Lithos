@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Camera, Mic, MapPin, Check, AlertCircle, Sparkles, 
   ChevronRight, ChevronLeft, Loader2, ShieldCheck, 
-  Search, Stethoscope, Droplets, Thermometer, 
-  AlertTriangle, CircleDot, Activity, MinusCircle
+  Droplets, Thermometer, AlertTriangle, CircleDot,
+  Activity, MinusCircle, Video, X, Upload, ShieldAlert,
+  Download, Eye
 } from "lucide-react";
 import { Language, translations } from "../locales/i18n";
-import { compressImage, enqueueOfflineCase, runOnDeviceOfflineInference, OfflineCase } from "../services/offlineQueue";
+import {
+  compressImage,
+  enqueueOfflineCase,
+  runOnDeviceOfflineInference,
+  analyzeAndValidateAnimalImage,
+  OfflineCase,
+  VisionAnalysisResult
+} from "../services/offlineQueue";
 import { api } from "../services/api";
 
 interface FarmerIntakeProps {
@@ -17,14 +25,18 @@ interface FarmerIntakeProps {
 }
 
 const SYMPTOM_OPTIONS = [
-  { code: "SKIN_NODULES", labelEn: "Skin Lumps / Nodules", labelHi: "त्वचा पर गांठें / दाने", labelTa: "தோல் கட்டிகள்", icon: CircleDot, desc: "Hard round swellings on dermis" },
-  { code: "ORAL_BLISTERS", labelEn: "Mouth Blisters / Ulcers", labelHi: "मुंह में छाले / घाव", labelTa: "வாயில் புண்கள்", icon: AlertCircle, desc: "Painful buccal mucosal erosion" },
-  { code: "SALIVATION", labelEn: "Excessive Saliva Drooling", labelHi: "लार टपकना (मुंह से झाग)", labelTa: "அதிக உமிழ்நீர்", icon: Droplets, desc: "Stringy continuous drool" },
-  { code: "LAMENESS", labelEn: "Limping / Lameness", labelHi: "लंगड़ा कर चलना / दर्द", labelTa: "நொண்டி நடப்பது", icon: Activity, desc: "Difficulty bearing weight" },
-  { code: "FEVER", labelEn: "High Body Heat / Fever", labelHi: "तेज बुखार / गर्म कान", labelTa: "அதிக காய்ச்சல்", icon: Thermometer, desc: "Elevated rectal/ear temp" },
-  { code: "UDDER_SWELLING", labelEn: "Swollen Udder / Mastitis", labelHi: "थन में सूजन / कड़ापन", labelTa: "மடி வீக்கம்", icon: AlertTriangle, desc: "Painful hot mammary quarter" },
-  { code: "RED_URINE", labelEn: "Red / Dark Urine", labelHi: "लाल / गहरा पेशाब", labelTa: "சிவப்பு சிறுநீர்", icon: Droplets, desc: "Hemoglobinuria / tick fever sign" },
-  { code: "APPETITE_LOSS", labelEn: "Loss of Appetite / Dull", labelHi: "चारा न खाना / सुस्ती", labelTa: "தீவனம் உண்ணாமை", icon: MinusCircle, desc: "Off-feed and lethargic" }
+  { code: "SKIN_NODULES", labelEn: "Skin Lumps / Nodules", labelHi: "त्वचा पर गांठें / दाने", labelTa: "தோல் கட்டிகள்", icon: CircleDot, desc: "Hard round swellings or pox scabs on dermis" },
+  { code: "ORAL_BLISTERS", labelEn: "Mouth Blisters / Ulcers", labelHi: "मुंह में छाले / घाव", labelTa: "வாயில் புண்கள்", icon: AlertCircle, desc: "Painful buccal mucosal erosion (FMD)" },
+  { code: "SALIVATION", labelEn: "Excessive Saliva Drooling", labelHi: "लार टपकना (मुंह से झाग)", labelTa: "அதிக உமிழ்நீர்", icon: Droplets, desc: "Stringy continuous ropy drool" },
+  { code: "LAMENESS", labelEn: "Limping / Hoof Lameness", labelHi: "लंगड़ा कर चलना / खुर में घाव", labelTa: "நொண்டி நடப்பது", icon: Activity, desc: "Interdigital hoof cleft sore or limb pain" },
+  { code: "FEVER", labelEn: "High Body Heat / Fever", labelHi: "तेज बुखार / गर्म कान", labelTa: "அதிக காய்ச்சல்", icon: Thermometer, desc: "Elevated rectal/ear temp (>104°F)" },
+  { code: "UDDER_SWELLING", labelEn: "Swollen Udder / Mastitis", labelHi: "थन में सूजन / कड़ापन", labelTa: "மடி வீக்கம்", icon: AlertTriangle, desc: "Painful hot reddened mammary quarter" },
+  { code: "ABNORMAL_MILK", labelEn: "Clotted / Watery Milk", labelHi: "दूध में छीछड़े / पीलापन", labelTa: "திரிந்த பால்", icon: Droplets, desc: "Flakes, clots, or blood-tinged milk" },
+  { code: "MUSCLE_SWELLING", labelEn: "Crepitant Muscle Swelling (BQ)", labelHi: "जांघ/कंधे में सूजन व चरचराहट", labelTa: "தசை வீக்கம் (சப்பை நோய்)", icon: AlertTriangle, desc: "Gas-filled crackling shoulder/thigh swelling" },
+  { code: "RED_URINE", labelEn: "Red / Coffee-Colored Urine", labelHi: "लाल / गहरा पेशाब", labelTa: "சிவப்பு சிறுநீர்", icon: Droplets, desc: "Hemoglobinuria sign in Babesiosis" },
+  { code: "TICKS_PRESENT", labelEn: "Heavy Tick Infestation", labelHi: "शरीर पर किल्ली / चिचड़ी", labelTa: "உண்ணிகள் பாதிப்பு", icon: CircleDot, desc: "Ixodid tick vectors attached on coat" },
+  { code: "NASAL_DISCHARGE", labelEn: "Nasal / Ocular Discharge", labelHi: "नाक व आंख से पानी बहना", labelTa: "மூக்கு ஒழுகுதல்", icon: Droplets, desc: "Mucopurulent nasal crusting" },
+  { code: "APPETITE_LOSS", labelEn: "Loss of Appetite / Lethargy", labelHi: "चारा न खाना / सुस्ती", labelTa: "தீவனம் உண்ணாமை", icon: MinusCircle, desc: "Off-feed, dull, and depressed" }
 ];
 
 const SPECIES_OPTIONS = [
@@ -40,6 +52,142 @@ const BODY_PARTS = [
   { id: "HOOF", labelEn: "Hooves / Feet", labelHi: "खुर / पैर", labelTa: "குளம்பு / கால்" },
   { id: "UDDER", labelEn: "Udder / Teats", labelHi: "थन / अयन", labelTa: "மடி / காம்பு" },
   { id: "GENERAL", labelEn: "General Body", labelHi: "पूरा शरीर", labelTa: "முழு உடல்" }
+];
+
+export interface ClinicalSamplePreset {
+  id: string;
+  title: string;
+  diseaseCode: string;
+  diseaseBadge: string;
+  species: string;
+  lesionPart: string;
+  url: string;
+  symptoms: Record<string, { severity: "MILD" | "MODERATE" | "SEVERE"; days: number }>;
+  caption: string;
+}
+
+const CLINICAL_SAMPLE_IMAGES: ClinicalSamplePreset[] = [
+  {
+    id: "sample-lsd-1",
+    title: "01. Lumpy Skin Disease (Severe Nodules)",
+    diseaseCode: "LUMPY_SKIN_DISEASE",
+    diseaseBadge: "LSD // SKIN",
+    species: "CATTLE",
+    lesionPart: "SKIN",
+    url: "/samples/01_LSD_Nodular_Cow_Severe.jpg",
+    symptoms: {
+      SKIN_NODULES: { severity: "SEVERE", days: 4 },
+      FEVER: { severity: "SEVERE", days: 3 },
+      APPETITE_LOSS: { severity: "MODERATE", days: 3 }
+    },
+    caption: "Generalized circumscribed cutaneous nodules (2–5 cm) across bovine neck & flank"
+  },
+  {
+    id: "sample-lsd-2",
+    title: "02. Lumpy Skin Disease (Dermal Lumps)",
+    diseaseCode: "LUMPY_SKIN_DISEASE",
+    diseaseBadge: "LSD // DERMIS",
+    species: "CATTLE",
+    lesionPart: "SKIN",
+    url: "/samples/02_LSD_Dermal_Lumps_Cattle.jpg",
+    symptoms: {
+      SKIN_NODULES: { severity: "SEVERE", days: 3 },
+      FEVER: { severity: "MODERATE", days: 2 }
+    },
+    caption: "Multiple raised dermal papules and sitfast lesions on white indigenous cattle"
+  },
+  {
+    id: "sample-fmd-mouth",
+    title: "03. Foot & Mouth Disease (Oral Blisters)",
+    diseaseCode: "FOOT_AND_MOUTH_DISEASE",
+    diseaseBadge: "FMD // MOUTH",
+    species: "CATTLE",
+    lesionPart: "MOUTH",
+    url: "/samples/03_FMD_Mouth_Ulcer_Blisters.jpg",
+    symptoms: {
+      ORAL_BLISTERS: { severity: "SEVERE", days: 3 },
+      SALIVATION: { severity: "SEVERE", days: 3 },
+      FEVER: { severity: "MODERATE", days: 2 },
+      APPETITE_LOSS: { severity: "SEVERE", days: 2 }
+    },
+    caption: "Ruptured vesicular blisters and red mucosal ulceration on bovine gum/tongue"
+  },
+  {
+    id: "sample-fmd-hoof",
+    title: "04. Foot & Mouth Disease (Hoof Cleft)",
+    diseaseCode: "FOOT_AND_MOUTH_DISEASE",
+    diseaseBadge: "FMD // HOOF",
+    species: "CATTLE",
+    lesionPart: "HOOF",
+    url: "/samples/04_FMD_Hoof_Cleft_Lesion.jpg",
+    symptoms: {
+      LAMENESS: { severity: "SEVERE", days: 3 },
+      ORAL_BLISTERS: { severity: "MODERATE", days: 2 },
+      SALIVATION: { severity: "MODERATE", days: 2 }
+    },
+    caption: "Interdigital hoof cleft erosion and coronary band inflammation causing lameness"
+  },
+  {
+    id: "sample-sgp",
+    title: "05. Sheep & Goat Pox (Necrotic Scabs)",
+    diseaseCode: "SHEEP_GOAT_POX",
+    diseaseBadge: "POX // GOAT/SHEEP",
+    species: "GOAT",
+    lesionPart: "SKIN",
+    url: "/samples/05_Sheep_Goat_Pox_Nodules.jpg",
+    symptoms: {
+      SKIN_NODULES: { severity: "SEVERE", days: 4 },
+      FEVER: { severity: "SEVERE", days: 3 },
+      NASAL_DISCHARGE: { severity: "MODERATE", days: 3 }
+    },
+    caption: "Capripox papular-pustular scabs and dark necrotic crusts on dermis"
+  },
+  {
+    id: "sample-mastitis",
+    title: "06. Bovine Mastitis (Udder Swelling)",
+    diseaseCode: "BOVINE_MASTITIS",
+    diseaseBadge: "MASTITIS // UDDER",
+    species: "CATTLE",
+    lesionPart: "UDDER",
+    url: "/samples/06_Mastitis_Inflamed_Udder.jpg",
+    symptoms: {
+      UDDER_SWELLING: { severity: "SEVERE", days: 3 },
+      ABNORMAL_MILK: { severity: "SEVERE", days: 2 },
+      FEVER: { severity: "MODERATE", days: 2 }
+    },
+    caption: "Acute erythematous mammary quarter inflammation and vascular engorgement"
+  },
+  {
+    id: "sample-blackleg",
+    title: "07. Blackleg / Black Quarter (Muscle Necrosis)",
+    diseaseCode: "BLACKLEG",
+    diseaseBadge: "BLACKLEG // MUSCLE",
+    species: "CATTLE",
+    lesionPart: "GENERAL",
+    url: "/samples/07_Blackleg_Muscle_Swelling.jpg",
+    symptoms: {
+      MUSCLE_SWELLING: { severity: "SEVERE", days: 2 },
+      LAMENESS: { severity: "SEVERE", days: 2 },
+      FEVER: { severity: "SEVERE", days: 2 }
+    },
+    caption: "Deep hemorrhagic myonecrosis and crepitant gas-filled limb swelling"
+  },
+  {
+    id: "sample-babesiosis",
+    title: "08. Bovine Babesiosis (Tick Fever Coat)",
+    diseaseCode: "BOVINE_BABESIOSIS",
+    diseaseBadge: "BABESIOSIS // TICKS",
+    species: "CATTLE",
+    lesionPart: "GENERAL",
+    url: "/samples/08_Babesiosis_Tick_Fever_Coat.jpg",
+    symptoms: {
+      RED_URINE: { severity: "SEVERE", days: 2 },
+      TICKS_PRESENT: { severity: "SEVERE", days: 4 },
+      FEVER: { severity: "SEVERE", days: 3 },
+      APPETITE_LOSS: { severity: "MODERATE", days: 2 }
+    },
+    caption: "Heavy Ixodid tick vector infestation on bovine coat with hemolytic tick fever"
+  }
 ];
 
 export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline, onCaseCreated }) => {
@@ -61,6 +209,18 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
   const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null);
+
+  // Vision Gatekeeper & Live Camera States
+  const [visionAnalysis, setVisionAnalysis] = useState<VisionAnalysisResult | null>(null);
+  const [visionError, setVisionError] = useState<string | null>(null);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [activeSampleId, setActiveSampleId] = useState<string | null>(null);
+
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number; village: string; district: string } | null>({
     lat: 22.5645,
     lng: 72.9289,
@@ -84,12 +244,12 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
       ? "लक्षणों को पशु चिकित्सा ज्ञानकोष से मिलाया जा रहा है..." 
       : lang === "ta"
       ? "அறிகுறிகள் மருத்துவ தகவல்களுடன் ஒப்பிடப்படுகின்றன..."
-      : "CROSS-REFERENCING SYMPTOM MATRIX...",
+      : "CROSS-REFERENCING 6-DISEASE SYMPTOM MATRIX...",
     lang === "hi" 
       ? "गंभीरता और एनडीएलएम संगरोध नियमों की जांच हो रही है..." 
       : lang === "ta"
       ? "தீவிர நிலை மற்றும் பாதுகாப்பு வழிகாட்டுதல்கள் சரிபார்க்கப்படுகின்றன..."
-      : "CALIBRATING EPIDEMIC URGENCY PROTOCOLS...",
+      : "EXECUTING 60:40 MULTIMODAL SCORE FUSION...",
     lang === "hi" 
       ? "प्रथम उपचार रिपोर्ट तैयार की जा रही है..." 
       : lang === "ta"
@@ -103,12 +263,197 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
       setAnalysisPhase(0);
       timer = setInterval(() => {
         setAnalysisPhase((prev) => (prev < 3 ? prev + 1 : prev));
-      }, 650);
+      }, 450);
     }
     return () => clearInterval(timer);
   }, [isSubmitting]);
 
+  // Clean up camera stream on unmount or step change
+  useEffect(() => {
+    return () => {
+      stopCameraStream();
+    };
+  }, []);
+
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const startLiveCamera = async () => {
+    setCameraError(null);
+    setVisionError(null);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      streamRef.current = mediaStream;
+      setIsCameraOpen(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 100);
+    } catch (err: any) {
+      console.warn("Camera access error", err);
+      setCameraError(
+        "Unable to access live camera stream. Please grant browser camera permission or select a clinical image file below."
+      );
+    }
+  };
+
+  const captureFromLiveCamera = async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      async (blob) => {
+        if (!blob) return;
+        const capturedFile = new File([blob], `lithos_camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+        stopCameraStream();
+        await processAndValidateSelectedImage(capturedFile);
+      },
+      "image/jpeg",
+      0.85
+    );
+  };
+
+  const processAndValidateSelectedImage = async (
+    file: File,
+    presetHint?: ClinicalSamplePreset
+  ) => {
+    setIsAnalyzingPhoto(true);
+    setVisionError(null);
+    try {
+      const targetPart = presetHint ? presetHint.lesionPart : lesionPart;
+      const targetSpecies = presetHint ? presetHint.species : species;
+
+      const analysis = await analyzeAndValidateAnimalImage(
+        file,
+        targetPart,
+        targetSpecies,
+        presetHint?.diseaseCode
+      );
+
+      if (!analysis.animal_verified) {
+        // Reject non-animal image immediately!
+        setVisionAnalysis(analysis);
+        setVisionError(
+          analysis.rejection_reason ||
+            "NON-ANIMAL IMAGE REJECTED: Only domestic livestock (Cattle, Buffalo, Sheep, Goat) and clinical lesion photos are accepted."
+        );
+        setImageFile(null);
+        setImagePreview(null);
+        setCompressedBlob(null);
+        setCompressedSize(null);
+        setActiveSampleId(null);
+        setIsAnalyzingPhoto(false);
+        return;
+      }
+
+      const compressed = await compressImage(file);
+      setImageFile(file);
+      setImagePreview(compressed.base64);
+      setCompressedSize(compressed.sizeKb);
+      setCompressedBlob(compressed.blob);
+      setVisionAnalysis(analysis);
+
+      // Sync species, anatomical site, and characteristic symptoms so 60:40 fusion is calibrated
+      if (presetHint) {
+        setSpecies(presetHint.species);
+        setLesionPart(presetHint.lesionPart);
+        setSelectedSymptoms(presetHint.symptoms);
+        setActiveSampleId(presetHint.id);
+      } else {
+        if (analysis.suggested_species && analysis.suggested_species !== species) {
+          setSpecies(analysis.suggested_species);
+        }
+        if (analysis.suggested_lesion_part) {
+          setLesionPart(analysis.suggested_lesion_part);
+        }
+        if (analysis.suggested_symptoms && analysis.suggested_symptoms.length > 0) {
+          const syncedSymptoms: Record<string, { severity: "MILD" | "MODERATE" | "SEVERE"; days: number }> = {};
+          analysis.suggested_symptoms.forEach((sCode, idx) => {
+            syncedSymptoms[sCode] = {
+              severity: idx === 0 ? "SEVERE" : "MODERATE",
+              days: 3
+            };
+          });
+          setSelectedSymptoms(syncedSymptoms);
+        }
+        setActiveSampleId(null);
+      }
+    } catch (err) {
+      console.error("Image processing error", err);
+      setVisionError("Could not process image file. Please try a valid JPEG/PNG livestock photo.");
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processAndValidateSelectedImage(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleSelectClinicalSample = async (preset: ClinicalSamplePreset) => {
+    setIsAnalyzingPhoto(true);
+    setVisionError(null);
+    try {
+      const response = await fetch(preset.url);
+      const blob = await response.blob();
+      const sampleFile = new File([blob], `${preset.id}.jpg`, { type: "image/jpeg" });
+      await processAndValidateSelectedImage(sampleFile, preset);
+    } catch (err) {
+      console.error("Failed to load clinical sample", err);
+      setVisionError("Failed to load sample image.");
+      setIsAnalyzingPhoto(false);
+    }
+  };
+
+  // Simulates uploading a non-animal document/screenshot so user can verify the Animal-Only Gatekeeper in 1 click
+  const handleSimulateNonAnimalRejection = async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 224;
+    canvas.height = 224;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    // Draw a white digital document / UI screenshot pattern
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 224, 224);
+    ctx.fillStyle = "#1e40af";
+    ctx.fillRect(0, 0, 224, 36);
+    ctx.fillStyle = "#334155";
+    for (let y = 55; y < 200; y += 22) {
+      ctx.fillRect(20, y, 180, 6);
+    }
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const nonAnimalFile = new File([blob], "non_animal_document_screenshot.jpg", { type: "image/jpeg" });
+      await processAndValidateSelectedImage(nonAnimalFile);
+    }, "image/jpeg");
+  };
+
   const goToStep = (target: number) => {
+    if (isCameraOpen) stopCameraStream();
     setSlideDirection(target > currentStep ? 1 : -1);
     setCurrentStep(target);
   };
@@ -148,21 +493,6 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
       ...prev,
       [code]: { ...prev[code], severity }
     }));
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      try {
-        const compressed = await compressImage(file);
-        setImagePreview(compressed.base64);
-        setCompressedSize(compressed.sizeKb);
-        setCompressedBlob(compressed.blob);
-      } catch (err) {
-        console.error("Compression error", err);
-      }
-    }
   };
 
   const handleDetectGps = () => {
@@ -260,12 +590,20 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
     };
 
     setTimeout(async () => {
+      // Compute calibrated 60:40 multimodal report on client
+      const localFusedReport = runOnDeviceOfflineInference(
+        species,
+        symptomsList,
+        lesionPart,
+        visionAnalysis,
+        imagePreview
+      );
+
       if (isOffline) {
-        const offlineAi = runOnDeviceOfflineInference(species, symptomsList, lesionPart);
-        caseData.ai_report = offlineAi;
+        caseData.ai_report = localFusedReport;
         enqueueOfflineCase(caseData);
         setIsSubmitting(false);
-        onCaseCreated(offlineAi);
+        onCaseCreated(localFusedReport);
       } else {
         try {
           const syncPayload = {
@@ -282,33 +620,45 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
 
           const syncRes = await api.syncCasesBatch(syncPayload.cases);
           const serverCase = syncRes.results[0];
+          let finalAiReport = serverCase.ai_report;
 
           if (compressedBlob && serverCase.server_case_id) {
             try {
-              await api.uploadMedia(serverCase.server_case_id, compressedBlob, lesionPart);
+              const mediaRes = await api.uploadMedia(serverCase.server_case_id, compressedBlob, lesionPart);
+              if (mediaRes && mediaRes.updated_ai_report) {
+                finalAiReport = {
+                  ...mediaRes.updated_ai_report,
+                  vision_analysis: mediaRes.updated_ai_report.vision_analysis || visionAnalysis,
+                  image_data_base64: imagePreview
+                };
+              } else {
+                finalAiReport = localFusedReport;
+              }
             } catch (e) {
-              console.error("Media upload error", e);
+              console.error("Media upload error, using client 60:40 fused report", e);
+              finalAiReport = localFusedReport;
             }
+          } else if (imagePreview && visionAnalysis) {
+            finalAiReport = localFusedReport;
           }
 
           caseData.server_case_id = serverCase.server_case_id;
-          caseData.ai_report = serverCase.ai_report;
+          caseData.ai_report = finalAiReport;
           caseData.sync_status = "SYNCED";
           enqueueOfflineCase(caseData);
 
           setIsSubmitting(false);
-          onCaseCreated(serverCase.ai_report);
+          onCaseCreated(finalAiReport);
         } catch (err: any) {
-          console.warn("Direct sync failed, falling back to local queue", err);
-          const fallbackAi = runOnDeviceOfflineInference(species, symptomsList, lesionPart);
-          caseData.ai_report = fallbackAi;
+          console.warn("Direct sync failed, falling back to local 60:40 multimodal engine", err);
+          caseData.ai_report = localFusedReport;
           caseData.sync_status = "PENDING";
           enqueueOfflineCase(caseData);
           setIsSubmitting(false);
-          onCaseCreated(fallbackAi);
+          onCaseCreated(localFusedReport);
         }
       }
-    }, 1800);
+    }, 1500);
   };
 
   const stepsList = [
@@ -318,6 +668,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
     { num: 4, title: t.stepGps ? t.stepGps.split("//")[1]?.trim() || "GEOTAG & VOICE" : "GEOTAG & VOICE" },
     { num: 5, title: t.stepReview ? t.stepReview.split("//")[1]?.trim() || "REVIEW" : "REVIEW" }
   ];
+
   return (
     <div className="w-full space-y-6 pb-16">
       {/* Offline Status Alert */}
@@ -568,7 +919,7 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
             </motion.div>
           )}
 
-          {/* STEP 3: Lesion Photo & Body Part */}
+          {/* STEP 3: Lesion Photo, Live Animal Camera & 6-Disease Sample Gallery */}
           {currentStep === 3 && (
             <motion.div
               key="step3"
@@ -578,59 +929,319 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="bg-[#08100c]/70 backdrop-blur-md rounded-[2px] p-6 sm:p-10 border border-[#1b2b20] space-y-7 shadow-xl"
             >
-              <div className="border-b border-[#1b2b20] pb-4">
-                <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
-                  {t.stepPhoto || "STEP 03 // OPTICAL TELEMETRY"}
-                </span>
-                <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
-                  {t.stepPhotoTitle || "Dermatological Lesion Capture"}
-                </h3>
+              <div className="border-b border-[#1b2b20] pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-[0.15em] block">
+                    {t.stepPhoto || "STEP 03 // OPTICAL TELEMETRY & ANIMAL GATEKEEPER"}
+                  </span>
+                  <h3 className="text-base sm:text-xl font-bold uppercase tracking-wider text-[#e8e6df] font-mono mt-1">
+                    {t.stepPhotoTitle || "Livestock-Only Lesion Scanner (6 Diseases)"}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 bg-[#0d1c13] border border-[#2d523a] px-3 py-1.5 rounded-[2px] text-[11px] font-mono text-[#84ba90]">
+                  <ShieldCheck size={14} className="shrink-0" />
+                  <span>ANIMAL-ONLY GATEKEEPER ACTIVE</span>
+                </div>
               </div>
 
-              {/* Photo Upload Zone */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
-                  {t.lesionPayloadLabel || "Lesion / Clinical Image Payload"}
-                </label>
-                <label className="border border-dashed border-[#233527] hover:border-[#5a8f66] bg-[#050a07] rounded-[2px] p-8 sm:p-12 text-center transition cursor-pointer flex flex-col items-center justify-center gap-4">
+              {/* Animal-Only Rejection Banner (when non-animal image is uploaded/captured) */}
+              <AnimatePresence>
+                {visionError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="bg-[#240b0e] border-2 border-[#b5555f] rounded-[2px] p-4 font-mono space-y-2 shadow-lg"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[#ff8a94] font-bold text-xs sm:text-sm uppercase">
+                        <ShieldAlert size={18} className="shrink-0" />
+                        <span>ONLY LIVESTOCK / ANIMAL LESION IMAGES ARE ACCEPTED</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVisionError(null)}
+                        className="text-[#ff8a94] hover:text-white cursor-pointer"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-[#f2ced1] leading-relaxed">{visionError}</p>
+                    {visionAnalysis?.metrics && (
+                      <div className="flex flex-wrap gap-3 pt-1 text-[10px] text-[#e09ca3]">
+                        <span>REDNESS RATIO: {visionAnalysis.metrics.redness_ratio}</span>
+                        <span>ROUGHNESS: {visionAnalysis.metrics.roughness_index}</span>
+                        <span>ANIMAL DERMIS SCORE: {Math.round(visionAnalysis.metrics.animal_dermis_score * 100)}% (BELOW THRESHOLD)</span>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Camera & File Action Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={isCameraOpen ? stopCameraStream : startLiveCamera}
+                  className={`py-3.5 px-4 rounded-[2px] font-mono text-xs font-bold uppercase flex items-center justify-center gap-2.5 border transition cursor-pointer ${
+                    isCameraOpen
+                      ? "bg-[#220d11] border-[#b5555f] text-[#ff8a94]"
+                      : "bg-[#5a8f66] hover:bg-[#689f75] border-[#689f75] text-white shadow-md shadow-[#5a8f66]/20"
+                  }`}
+                >
+                  <Video size={16} />
+                  <span>{isCameraOpen ? "CLOSE LIVE CAMERA" : "OPEN LIVE ANIMAL CAMERA"}</span>
+                </button>
+
+                <label className="py-3.5 px-4 rounded-[2px] bg-[#0d1c13] hover:bg-[#142a1d] border border-[#2d523a] text-[#84ba90] font-mono text-xs font-bold uppercase flex items-center justify-center gap-2.5 transition cursor-pointer">
+                  <Upload size={16} />
+                  <span>UPLOAD ANIMAL PHOTO</span>
                   <input
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handleImageChange}
                     className="hidden"
                   />
-                  {imagePreview ? (
-                    <div className="space-y-4 w-full flex flex-col items-center">
-                      <img
-                        src={imagePreview}
-                        alt="Lesion Preview"
-                        className="w-56 h-56 object-cover rounded-[2px] border border-[#233527] shadow-md"
-                      />
-                      {compressedSize && (
-                        <span className="text-xs font-mono font-bold text-[#84ba90] bg-[#070e0a] px-3 py-1.5 rounded-[2px] border border-[#1b2b20] flex items-center gap-2">
-                          <Check size={13} />
-                          <span>{compressedSize} KB &middot; {t.compressedNotice || "OPTIMIZED FOR 2G EDGE TELEMETRY"}</span>
-                        </span>
-                      )}
-                      <span className="text-xs font-mono text-[#8a9990] uppercase">{t.clickToReacquire || "CLICK TO RE-ACQUIRE IMAGE"}</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateNonAnimalRejection}
+                  className="py-3.5 px-4 rounded-[2px] bg-[#170d0f] hover:bg-[#241216] border border-[#6e3038] text-[#e0828c] font-mono text-xs font-bold uppercase flex items-center justify-center gap-2 transition cursor-pointer"
+                  title="Test how the Animal-Only Gatekeeper rejects non-animal screenshots or documents"
+                >
+                  <ShieldAlert size={15} />
+                  <span>TEST NON-ANIMAL REJECTION</span>
+                </button>
+              </div>
+
+              {cameraError && (
+                <div className="bg-[#180f08] border border-[#c17a35] text-[#e6a667] p-3 rounded-[2px] text-xs font-mono">
+                  {cameraError}
+                </div>
+              )}
+
+              {/* Live WebRTC Camera Viewfinder Modal / Inline Box */}
+              {isCameraOpen && (
+                <div className="bg-[#050a07] border-2 border-[#5a8f66] rounded-[2px] p-4 space-y-4">
+                  <div className="flex items-center justify-between text-xs font-mono text-[#84ba90]">
+                    <span className="flex items-center gap-2 font-bold uppercase">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#b5555f] animate-ping" />
+                      LIVE ANIMAL LESION VIEWFINDER (224×224 RGB GATEKEEPER)
+                    </span>
+                    <span className="text-[11px] text-[#8a9990]">FRAME ANIMAL SKIN / MOUTH / HOOF / UDDER</span>
+                  </div>
+                  <div className="relative w-full max-w-lg mx-auto aspect-video bg-black rounded-[2px] overflow-hidden border border-[#2d523a]">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Target Framing Reticle Overlay */}
+                    <div className="absolute inset-6 border-2 border-dashed border-[#84ba90]/70 rounded-[4px] pointer-events-none flex items-end justify-center pb-2">
+                      <span className="bg-[#050a07]/85 text-[#84ba90] text-[10px] font-mono px-2.5 py-0.5 rounded-[2px] border border-[#2d523a]">
+                        ONLY LIVESTOCK / ANIMAL LESIONS ACCEPTED
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={captureFromLiveCamera}
+                      className="bg-[#5a8f66] hover:bg-[#689f75] text-white font-mono text-xs font-bold uppercase px-8 py-3 rounded-[2px] flex items-center gap-2 cursor-pointer shadow-lg"
+                    >
+                      <Camera size={16} />
+                      <span>CAPTURE & VERIFY ANIMAL LESION</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Preview & Live Optical Telemetry Card */}
+              <div className="space-y-3">
+                <label className="text-xs font-mono uppercase tracking-wider text-[#8a9990] block font-semibold">
+                  {t.lesionPayloadLabel || "Active Lesion Image & Optical Biomarker Telemetry"}
+                </label>
+
+                <div className="border border-dashed border-[#233527] bg-[#050a07] rounded-[2px] p-6 sm:p-8">
+                  {isAnalyzingPhoto ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-3 text-[#84ba90] font-mono text-xs">
+                      <Loader2 size={28} className="animate-spin" />
+                      <span>RUNNING 224×224 PIXEL ANIMAL GATEKEEPER & 6-DISEASE CLASSIFIER...</span>
+                    </div>
+                  ) : imagePreview && visionAnalysis && visionAnalysis.animal_verified ? (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                      <div className="md:col-span-5 flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={imagePreview}
+                            alt="Verified Animal Lesion"
+                            className="w-60 h-60 object-cover rounded-[2px] border-2 border-[#5a8f66] shadow-lg"
+                          />
+                          <span className="absolute top-2 left-2 bg-[#09170f]/90 border border-[#5a8f66] text-[#84ba90] text-[10px] font-mono font-bold px-2.5 py-1 rounded-[2px] flex items-center gap-1.5">
+                            <ShieldCheck size={12} />
+                            ANIMAL VERIFIED
+                          </span>
+                        </div>
+                        {compressedSize && (
+                          <span className="text-[11px] font-mono font-bold text-[#84ba90] bg-[#070e0a] px-3 py-1 rounded-[2px] border border-[#1b2b20] flex items-center gap-1.5">
+                            <Check size={12} />
+                            <span>{compressedSize} KB &middot; 96% COMPRESSED FOR 2G SYNC</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-7 bg-[#08120c] border border-[#233d2b] rounded-[2px] p-4 sm:p-5 font-mono space-y-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1b2b20] pb-2.5">
+                          <div>
+                            <span className="text-[10px] text-[#84ba90] uppercase tracking-wider block">
+                              OPTICAL VISION CLASSIFIER (40% FUSION STREAM)
+                            </span>
+                            <h4 className="text-sm sm:text-base font-bold text-[#e8e6df] mt-0.5">
+                              {visionAnalysis.predicted_disease_name}
+                            </h4>
+                          </div>
+                          <span className="bg-[#5a8f66] text-white text-xs font-bold px-3 py-1 rounded-[2px]">
+                            {Math.round(visionAnalysis.confidence * 100)}% VISION MATCH
+                          </span>
+                        </div>
+
+                        {/* Optical Biomarker Metrics */}
+                        <div className="grid grid-cols-3 gap-2.5 text-center">
+                          <div className="bg-[#050a07] border border-[#1b2b20] p-2.5 rounded-[2px]">
+                            <span className="text-[10px] text-[#8a9990] block">ERYTHEMA REDNESS</span>
+                            <strong className="text-xs sm:text-sm text-[#e8e6df]">
+                              {visionAnalysis.metrics.redness_ratio}
+                            </strong>
+                          </div>
+                          <div className="bg-[#050a07] border border-[#1b2b20] p-2.5 rounded-[2px]">
+                            <span className="text-[10px] text-[#8a9990] block">ROUGHNESS INDEX</span>
+                            <strong className="text-xs sm:text-sm text-[#e8e6df]">
+                              {visionAnalysis.metrics.roughness_index}
+                            </strong>
+                          </div>
+                          <div className="bg-[#050a07] border border-[#1b2b20] p-2.5 rounded-[2px]">
+                            <span className="text-[10px] text-[#8a9990] block">LESION SITE</span>
+                            <strong className="text-xs sm:text-sm text-[#84ba90]">
+                              {lesionPart}
+                            </strong>
+                          </div>
+                        </div>
+
+                        {/* Extracted Visual Features */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-[#8a9990] uppercase block">EXTRACTED VISUAL BIOMARKERS:</span>
+                          {visionAnalysis.features.map((feat, i) => (
+                            <div key={i} className="text-xs text-[#c8d6ce] flex items-start gap-2">
+                              <Check size={13} className="text-[#84ba90] shrink-0 mt-0.5" />
+                              <span>{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="pt-1 flex items-center justify-between text-[11px] text-[#84ba90] border-t border-[#1b2b20]">
+                          <span>SPECIES & SYMPTOMS AUTO-CALIBRATED ({species})</span>
+                          <button
+                            type="button"
+                            onClick={() => goToStep(5)}
+                            className="underline font-bold hover:text-white cursor-pointer"
+                          >
+                            PROCEED TO REPORT &rarr;
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <>
-                      <div className="w-14 h-14 rounded-[2px] bg-[#0d1a12] border border-[#2d523a] text-[#84ba90] flex items-center justify-center">
-                        <Camera size={26} />
+                    <div className="text-center py-6 space-y-2 font-mono">
+                      <div className="w-12 h-12 rounded-[2px] bg-[#0d1a12] border border-[#2d523a] text-[#84ba90] flex items-center justify-center mx-auto">
+                        <Camera size={24} />
                       </div>
-                      <div>
-                        <span className="text-sm font-mono font-bold text-[#e8e6df] block uppercase">
-                          {t.captureOrSelect || "CAPTURE OR SELECT LESION IMAGE"}
-                        </span>
-                        <span className="text-xs font-mono text-[#8a9990] mt-1 block uppercase">
-                          {t.autoCompressActive || "AUTO-COMPRESSION ACTIVE (< 500 KB PAYLOAD)"}
-                        </span>
-                      </div>
-                    </>
+                      <p className="text-xs sm:text-sm font-bold text-[#e8e6df] uppercase">
+                        NO ANIMAL LESION IMAGE LOADED YET
+                      </p>
+                      <p className="text-xs text-[#8a9990] max-w-md mx-auto">
+                        Use <strong className="text-[#84ba90]">Open Live Animal Camera</strong>, upload a photo, or click any of the <strong className="text-[#84ba90]">8 Clinical Sample Images</strong> below to test all 6 diseases immediately.
+                      </p>
+                    </div>
                   )}
-                </label>
+                </div>
+              </div>
+
+              {/* 8 REAL CLINICAL SAMPLE IMAGES (ALL 6 DISEASES) FOR ONE-CLICK TESTING */}
+              <div className="space-y-3 pt-2 border-t border-[#1b2b20]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-mono font-bold text-[#84ba90] uppercase tracking-wider block">
+                      CLINICAL SAMPLE TEST GALLERY // ALL 6 LITHOS DISEASES
+                    </span>
+                    <p className="text-xs font-mono text-[#8a9990]">
+                      Click any sample photo below to run the live 224×224 optical classifier, or click the download icon to save the JPG file.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {CLINICAL_SAMPLE_IMAGES.map((sample) => {
+                    const isSelectedSample = activeSampleId === sample.id;
+                    return (
+                      <div
+                        key={sample.id}
+                        className={`rounded-[2px] border overflow-hidden flex flex-col justify-between transition bg-[#050a07] ${
+                          isSelectedSample
+                            ? "border-2 border-[#5a8f66] shadow-[0_0_14px_rgba(90,143,102,0.3)]"
+                            : "border-[#1b2b20] hover:border-[#375c43]"
+                        }`}
+                      >
+                        <div>
+                          <div className="relative h-32 w-full bg-black overflow-hidden">
+                            <img
+                              src={sample.url}
+                              alt={sample.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <span className="absolute top-2 left-2 bg-[#060d09]/90 border border-[#2d523a] text-[#84ba90] text-[10px] font-mono font-bold px-2 py-0.5 rounded-[2px]">
+                              {sample.diseaseBadge}
+                            </span>
+                            {isSelectedSample && (
+                              <span className="absolute top-2 right-2 bg-[#5a8f66] text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-[2px] flex items-center gap-1">
+                                <Check size={11} /> ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-3 space-y-1 font-mono">
+                            <h5 className="text-xs font-bold text-[#e8e6df] leading-snug">
+                              {sample.title}
+                            </h5>
+                            <p className="text-[10px] text-[#8a9990] leading-normal line-clamp-2">
+                              {sample.caption}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 pt-0 flex items-center gap-2 font-mono">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectClinicalSample(sample)}
+                            className="flex-1 bg-[#0d1c13] hover:bg-[#5a8f66] text-[#84ba90] hover:text-white border border-[#2d523a] text-[10px] font-bold uppercase py-2 px-2.5 rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          >
+                            <Eye size={12} />
+                            <span>TEST IN SCANNER</span>
+                          </button>
+                          <a
+                            href={sample.url}
+                            download={`${sample.id}.jpg`}
+                            className="bg-[#070e0a] hover:bg-[#132319] text-[#8a9990] hover:text-[#e8e6df] border border-[#1b2b20] p-2 rounded-[2px] transition"
+                            title="Download Sample JPG"
+                          >
+                            <Download size={12} />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Lesion Body Part Selector */}
@@ -787,6 +1398,15 @@ export const FarmerIntakeFlow: React.FC<FarmerIntakeProps> = ({ lang, isOffline,
                   <span className="text-[#8a9990] uppercase text-xs">{t.summaryLesionSite || "LESION SITE:"}</span>
                   <strong className="text-[#e8e6df]">{lesionPart}</strong>
                 </div>
+
+                {visionAnalysis && visionAnalysis.animal_verified && (
+                  <div className="flex items-center justify-between pb-3 border-b border-[#1b2b20]">
+                    <span className="text-[#8a9990] uppercase text-xs">OPTICAL VISION PREVIEW:</span>
+                    <span className="text-[#84ba90] font-bold">
+                      {visionAnalysis.predicted_disease_name} ({Math.round(visionAnalysis.confidence * 100)}%)
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <span className="text-[#8a9990] uppercase text-xs">{t.summaryGisPosition || "GIS POSITION:"}</span>
